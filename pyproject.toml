@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61", "wheel", "packaging", "ninja", "numpy", "torch"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lrnnx"
+version = "1.0.0"
+description = "A library for Linear RNNs"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+requires-python = ">=3.9"
+authors = [
+  {name = "SAiDl Team"}
+]
+dependencies = [
+  "numpy",
+  "torch",
+  "einops",
+  "ninja",
+  "packaging",
+  "opt-einsum",
+  "pykeops"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "mypy"
+]
+conv1d = [
+  "causal-conv1d"
+]
+
+[tool.black]
+line-length = 79
+
+[tool.isort]
+profile = "black"
+
+[tool.setuptools]
+packages = {find = {exclude = ["*.tests"]}}
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+
+[project.urls]
+Homepage = "https://github.com/SforAiDl/lrnnx"

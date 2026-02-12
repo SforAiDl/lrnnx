@@ -1,0 +1,57 @@
+cff-version: "1.2.0"
+date-released: 2026-02
+message: "If you use this software, please cite it using these metadata."
+title: "lrnnx: A library for Linear RNNs"
+url: "https://github.com/SforAiDl/lrnnx"
+authors: 
+  - family-names: Bania
+    given-names: Karan
+  - family-names: Kalburgi
+    given-names: Soham
+  - family-names: Tanwar
+    given-names: Manit
+  - given-names: Dhruthi
+  - family-names: Nagarsekar
+    given-names: Aditya
+  - family-names: Mestha
+    given-names: Harshvardhan
+  - family-names: Chibber
+    given-names: Naman
+  - family-names: Deshmukh
+    given-names: Raj
+  - family-names: Sathyanarayanan
+    given-names: Anish
+  - family-names: Rathore
+    given-names: Aarush
+  - family-names: Chheda
+    given-names: Pratham
+preferred-citation:
+  type: article
+  authors:
+  - family-names: Bania
+    given-names: Karan
+  - family-names: Kalburgi
+    given-names: Soham
+  - family-names: Tanwar
+    given-names: Manit
+  - given-names: Dhruthi
+  - family-names: Nagarsekar
+    given-names: Aditya
+  - family-names: Mestha
+    given-names: Harshvardhan
+  - family-names: Chibber
+    given-names: Naman
+  - family-names: Deshmukh
+    given-names: Raj
+  - family-names: Sathyanarayanan
+    given-names: Anish
+  - family-names: Rathore
+    given-names: Aarush
+  - family-names: Chheda
+    given-names: Pratham
+  month: 2
+  title: "lrnnx: A library for Linear RNNs"
+  year: 2026
+  url: "https://arxiv.org/abs/2602.08810"
+  journal: "arXiv preprint arXiv:2602.08810"
+  
