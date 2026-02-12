@@ -8,6 +8,7 @@ with the License. You may obtain a copy of the License in the LICENSE file.
 # lrnnx: A library for Linear RNNs
 <p>
 	<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+	<a href="https://pypi.org/project/lrnnx/"><img alt="PyPI" src="https://img.shields.io/pypi/v/lrnnx?color=yellow"></a>
 	<a href="https://arxiv.org/abs/2602.08810"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2602.08810-b31b1b.svg"></a>
 </p>
 
