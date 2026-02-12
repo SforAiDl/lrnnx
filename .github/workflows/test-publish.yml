@@ -4,6 +4,9 @@ name: Publish to TestPyPI
 #   release:
 #     types: [published]
 
+on:
+  workflow_dispatch: # manual trigger
+
 jobs:
   pypi-publish:
     name: Upload release to TestPyPI
