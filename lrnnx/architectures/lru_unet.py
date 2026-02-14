@@ -8,22 +8,37 @@ from lrnnx.models.lti.lru import LRU
 
 
 class LayerNormFeature(nn.Module):
-    """Layer normalization over feature (channel) dimension."""
+    """
+    Layer normalization over the feature (channel) dimension.
+    
+    :param num_features: Number of features (channels).
+    :type num_features: int
+    """
 
     def __init__(self, num_features: int):
         super().__init__()
-        # nn.LayerNorm normalizes over the last dimension (C) for (B, T, C)
         self.norm = nn.LayerNorm(num_features)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, T, C)
+        """
+        Applies normalization to input.
+
+        :param x: Input of shape `(B, T, C)`.
+        :type x: torch.Tensor
+        :return: Normalized output.
+        :rtype: torch.Tensor
+        """
         return self.norm(x)
 
 
 class DownPool1D(nn.Module):
     """
     1D downsampling: stride-k Conv1d that doubles channels.
-    Expects (B, C, T) in, returns (B, 2C, T/k) when T is divisible by k.
+
+    :param in_channels: Number of input channels.
+    :type in_channels: int
+    :param downsample_factor: Stride factor. Defaults to 2.
+    :type downsample_factor: int, optional
     """
 
     def __init__(self, in_channels: int, downsample_factor: int = 2):
@@ -38,23 +53,31 @@ class DownPool1D(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, C, T)
+        """
+        Downsample input.
+
+        :param x: Input of shape `(B, C, T)`.
+        :type x: torch.Tensor
+        :return: Downsampled output of shape `(B, 2C, T/k)`.
+        :rtype: torch.Tensor
+        """
         return self.conv(x)
 
 
 class UpPool1D(nn.Module):
     """
-    1D upsampling: ConvTranspose1d with stride-k that halves channels.
-    Expects (B, C, T) in, returns (B, C/2, T*k) (with a fixed causal shift).
+    1D upsampling: stride-k ConvTranspose1d that halves channels.
+
+    :param in_channels: Number of input channels.
+    :type in_channels: int
+    :param upsample_factor: Upsampling stride. Defaults to 2.
+    :type upsample_factor: int, optional
     """
 
-    def __init__(
-        self, in_channels: int, upsample_factor: int = 2, causal: bool = True
-    ):
+    def __init__(self, in_channels: int, upsample_factor: int = 2):
         super().__init__()
-        self.causal = causal
         self.factor = upsample_factor
-        self.deconv = nn.ConvTranspose1d(
+        self.conv = nn.ConvTranspose1d(
             in_channels=in_channels,
             out_channels=in_channels // 2,
             kernel_size=upsample_factor,
@@ -63,185 +86,110 @@ class UpPool1D(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, C, T)
-        x = self.deconv(x)
-        if self.causal:
-            # Fixed causal shift to align with downsampling convention
-            x = F.pad(x, (1, 0))[:, :, :-1]
-        return x
+        """
+        Upsample input.
+
+        :param x: Input of shape `(B, C, T)`.
+        :type x: torch.Tensor
+        :return: Upsampled output of shape `(B, C/2, T*k)`.
+        :rtype: torch.Tensor
+        """
+        return self.conv(x)
 
 
-class LRUBlock(nn.Module):
+class LRU_UNet(nn.Module):
     """
-    Wrapper around lrnnx LRU for 1D tensors in (B, T, C) format.
-    LRU expects (B, L, H) == (B, T, C).
+    Linear Recurrent Unit (LRU) based U-Net for sequence tasks.
+
+    :param d_model: Input feature dimension.
+    :type d_model: int
+    :param d_state: Hidden state dimension for the LRU layers.
+    :type d_state: int
+    :param n_layers: Number of downsampling/upsampling stages.
+    :type n_layers: int
+    :param downsample_factor: Factor for each stage. Defaults to 2.
+    :type downsample_factor: int, optional
     """
 
-    def __init__(self, N: int, H: int):
-        super().__init__()
-        self.lru_layer = LRU(N=N, H=H)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, T, C) where C == H
-        return self.lru_layer(x)
-
-
-class LRUUnet(nn.Module):
     def __init__(
         self,
-        in_channels: int = 1,
-        out_channels: int = 1,
-        channels: List[int] = [8, 16],
-        resample_factors: List[int] = [4, 2],
-        pre_conv: bool = False,  # unused
-        causal: bool = True,
-        dtype: torch.dtype = torch.float32,
+        d_model: int,
+        d_state: int,
+        n_layers: int,
+        downsample_factor: int = 2,
     ):
         super().__init__()
+        self.n_layers = n_layers
+        self.total_downsample = downsample_factor**n_layers
 
-        if len(channels) != len(resample_factors):
-            raise ValueError(
-                f"Length of channels ({len(channels)}) must match "
-                f"length of resample_factors ({len(resample_factors)})"
-            )
-
-        self.depth = len(channels)
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.channels = [in_channels] + channels
-        self.resample_factors = resample_factors
-        self.pre_conv = pre_conv
-        self.causal = causal
-
-        # Total downsampling factor (product of all r's)
-        self.total_downsample = 1
-        for r in resample_factors:
-            self.total_downsample *= r
-
-        # Encoder
         self.down_ssms = nn.ModuleList()
-        enc_out_chs = []  # channels after each DownPool
-
-        cur_ch = in_channels  # start with input channels
-        for c_target, r in zip(channels, resample_factors):
+        curr_dim = d_model
+        for _ in range(n_layers):
             self.down_ssms.append(
-                nn.Sequential(
-                    # (B, T, cur_ch) -> (B, T, cur_ch)
-                    self.build_lru_block(cur_ch, use_activation=True),
-                    # (B, cur_ch, T) -> (B, 2*cur_ch, T/r)
-                    DownPool1D(cur_ch, downsample_factor=r),
+                nn.ModuleList(
+                    [
+                        LRU(curr_dim, d_state),
+                        DownPool1D(curr_dim, downsample_factor),
+                    ]
                 )
             )
-            cur_ch = cur_ch * 2
-            enc_out_chs.append(cur_ch)
+            curr_dim *= 2
 
-        encoder_out_channels = enc_out_chs
+        self.hid_ssms = LRU(curr_dim, d_state)
 
-        # Bottleneck
-        final_encoder_channels = encoder_out_channels[-1]
-        self.hid_ssms = nn.Sequential(
-            self.build_lru_block(final_encoder_channels, use_activation=True),
-            self.build_lru_block(final_encoder_channels, use_activation=True),
-        )
-
-        # Decoder
         self.up_ssms = nn.ModuleList()
-        cur_ch = final_encoder_channels
-        for enc_out_c, r in zip(
-            encoder_out_channels[::-1], resample_factors[::-1]
-        ):
+        for _ in range(n_layers):
             self.up_ssms.append(
-                nn.Sequential(
-                    # (B, cur_ch, T) -> (B, cur_ch//2, T*r)
-                    UpPool1D(cur_ch, upsample_factor=r, causal=causal),
-                    # LRU on (B, T, cur_ch//2)
-                    self.build_lru_block(cur_ch // 2, use_activation=True),
+                nn.ModuleList(
+                    [
+                        UpPool1D(curr_dim, downsample_factor),
+                        LRU(curr_dim // 2, d_state),
+                    ]
                 )
             )
-            cur_ch = cur_ch // 2
-
-        # Final processing
-        self.last_ssms = nn.Sequential(
-            self.build_lru_block(in_channels, use_activation=True),
-            self.build_lru_block(in_channels, use_activation=False),
-        )
-
-        if in_channels != out_channels:
-            self.final_proj = nn.Conv1d(
-                in_channels,
-                out_channels,
-                kernel_size=1,
-                bias=False,
-                dtype=dtype,
-            )
-        else:
-            self.final_proj = nn.Identity()
-
-    def build_lru_block(
-        self, in_channels: int, use_activation: bool = False
-    ) -> nn.Sequential:
-        """
-        LRU block that accepts (B, T, C=in_channels) and preserves C.
-        """
-        seq = nn.Sequential()
-        seq.append(LRUBlock(N=in_channels, H=in_channels))
-
-        if use_activation:
-            if in_channels > 1:
-                seq.append(LayerNormFeature(in_channels))
-            seq.append(nn.SiLU())
-
-        return seq
+            curr_dim //= 2
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Input:  (B, Cin, T)
-        Output: (B, Cout, T)
+        Forward pass through the U-Net.
+
+        :param x: Input sequence of shape `(B, C_in, T)`.
+        :type x: torch.Tensor
+        :return: Processed sequence of shape `(B, C_in, T)`.
+        :rtype: torch.Tensor
         """
-        # Pad input so T is divisible by total_downsample
-        T = x.shape[2]  # (B, C_in, T)
+        # Handle padding for stride alignment
+        T = x.shape[2]
         original_length = T
         pad_amount = (
             self.total_downsample - (T % self.total_downsample)
         ) % self.total_downsample
         if pad_amount > 0:
-            x = F.pad(x, (0, pad_amount))  # (B, C_in, T + pad_amount)
+            x = F.pad(x, (0, pad_amount))
 
         x = x.permute(0, 2, 1)  # (B, T, C_in)
-
         skips = []
 
         # Encoder
-        for down_seq in self.down_ssms:
+        for lru_layer, pool_layer in self.down_ssms:
             skips.append(x)
-            x = down_seq[0](x)  # (B, T, C)
+            x = lru_layer(x)
+            x_conv = x.permute(0, 2, 1)
+            x_conv = pool_layer(x_conv)
+            x = x_conv.permute(0, 2, 1)
 
-            # go to (B, C, T) for Conv1d
-            x_conv = x.permute(0, 2, 1)  # (B, C, T)
-            x_conv = down_seq[1](x_conv)  # DownPool1D: (B, 2C, T/r)
-            x = x_conv.permute(0, 2, 1)  # back to (B, T, 2C)
-
-        # Bottleneck
-        x = self.hid_ssms(x)  # (B, T, C_enc_last)
+        x = self.hid_ssms(x)
 
         # Decoder
-        for up_seq, skip in zip(self.up_ssms, skips[::-1]):
-            # go to (B, C, T) for ConvTranspose1d
-            x_conv = x.permute(0, 2, 1)  # (B, C, T)
-            x_conv = up_seq[0](x_conv)  # UpPool1D: (B, C/2, T*r)
-            x = x_conv.permute(0, 2, 1)  # (B, T, C/2)
+        for pool_layer, lru_layer in self.up_ssms:
+            x_conv = x.permute(0, 2, 1)
+            x_conv = pool_layer(x_conv)
+            x = x_conv.permute(0, 2, 1)
+            skip = skips.pop()
+            x = lru_layer(x + skip)
 
-            x = x + skip
-            x = up_seq[1](x)  # (B, T, C)
-
-        # Final processing
-        x = self.last_ssms(x)  # (B, T, C_in)
-
-        # Back to (B, C, T)
-        x = x.permute(0, 2, 1)  # (B, C_in, T)
-        x = self.final_proj(x)  # (B, C_out, T)
-
-        # Crop back to original (un-padded) length
-        x = x[:, :, :original_length]  # (B, C_out, original_T)
+        x = x.permute(0, 2, 1)
+        if pad_amount > 0:
+            x = x[..., :original_length]
 
         return x

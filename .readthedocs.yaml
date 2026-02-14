@@ -5,9 +5,30 @@ build:
   tools:
     python: "3.11"
   commands:
-    - pip install sphinx sphinx-rtd-theme
-    - sphinx-apidoc -f -o docs/source/ lrnnx/ lrnnx/*/tests*
+    # Install dependencies (Furo instead of RTD theme)
+    - pip install sphinx furo myst-parser
     
+    # Generate .rst files
+    - sphinx-apidoc -f -e -M -o docs/source/ lrnnx/ lrnnx/*/tests*
+    
+    # Move files into api/ folders
+    - mkdir -p docs/source/api/models docs/source/api/architectures docs/source/api/core docs/source/api/ops docs/source/api/utils
+    - mv docs/source/lrnnx.models*.rst docs/source/api/models/ 2>/dev/null || true
+    - mv docs/source/lrnnx.architectures*.rst docs/source/api/architectures/ 2>/dev/null || true
+    - mv docs/source/lrnnx.core*.rst docs/source/api/core/ 2>/dev/null || true
+    - mv docs/source/lrnnx.ops*.rst docs/source/api/ops/ 2>/dev/null || true
+    - mv docs/source/lrnnx.utils*.rst docs/source/api/utils/ 2>/dev/null || true
+    
+    # Delete duplicate files
+    - rm -f docs/source/lrnnx.rst
+    - rm -f docs/source/modules.rst
+    - rm -f docs/source/api/models/lrnnx.models.rst
+    - rm -f docs/source/api/architectures/lrnnx.architectures.rst
+    - rm -f docs/source/api/core/lrnnx.core.rst
+    - rm -f docs/source/api/ops/lrnnx.ops.rst
+    - rm -f docs/source/api/utils/lrnnx.utils.rst
+    
+    # Build HTML
     - sphinx-build -b html docs/source $READTHEDOCS_OUTPUT/html
 
 sphinx:
