@@ -15,17 +15,23 @@ from lrnnx.models.lti.base import LTI_LRNN
 
 
 class CentaurusBase(LTI_LRNN, ABC):
-    """Common base for Centaurus mode variants (neck, pointwise, dws, full).
+    """
+    Common base for Centaurus mode variants (neck, pointwise, dws, full).
 
-    Example
-    -------
-    >>> # Use via subclasses (CentaurusNeck, CentaurusDWS, CentaurusFull, CentaurusPWNeck)
-    >>> # or through the Centaurus wrapper
-    >>> model = CentaurusNeck(d_model=64, d_state=64, sub_state_dim=8, discretization="zoh")
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> # Use via subclasses (CentaurusNeck, CentaurusDWS, CentaurusFull, CentaurusPWNeck)
+        >>> # or through the Centaurus wrapper
+        >>> model = CentaurusNeck(d_model=64, d_state=64, sub_state_dim=8, discretization="zoh")
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
+
+    Args:
+        d_model (int): The model dimension.
+        d_state (int): The state dimension.
+        sub_state_dim (int): The sub-state dimension.
+        discretization (Literal["zoh", "bilinear", "dirac", "async"], optional): Discretization method. Defaults to "zoh".
     """
 
     def __init__(
@@ -87,11 +93,10 @@ class CentaurusBase(LTI_LRNN, ABC):
         Computes the discrete-time latent convolution kernel with intra-state mode
         mixing using the shared Centaurus formulation.
 
-        Returns
-        -------
-        tuple[Tensor, Tensor]
-            - k: Latent kernel of shape (N, L), where N is the number of state channels.
-            - Empty tensor: Placeholder for compatibility with standard LTI interface expectations.
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - k (torch.Tensor): Latent kernel of shape (N, L), where N is the number of state channels.
+                - empty (torch.Tensor): Placeholder for compatibility with standard LTI interface expectations.
         """
         arange = torch.arange(self.seq_len, device=self.A.device)  # (L,)
         dtA = einsum("n,nm->nm", self._positive_delta(), self.A)
@@ -103,11 +108,9 @@ class CentaurusBase(LTI_LRNN, ABC):
         """
         This method is intentionally not implemented for Centaurus variants.
 
-        Raises
-        ------
-        NotImplementedError
-            Always raised, since Centaurus does not support explicit discretization
-            via this method.
+        Raises:
+            NotImplementedError: Always raised, since Centaurus does not support explicit discretization
+                via this method.
         """
         raise NotImplementedError(
             "Centaurus implicitly performs ZOH discretization in its kernel computation and forward methods. "
@@ -123,21 +126,13 @@ class CentaurusBase(LTI_LRNN, ABC):
         """
         Forward pass through a Centaurus LTI mode variant.
 
-        Parameters
-        ----------
-        x : Tensor
-            Input sequence of shape (B, L, H_in).
+        Args:
+            x (torch.Tensor): Input sequence of shape (B, L, H_in).
+            integration_timesteps (torch.Tensor, optional): Placeholder for async models. Not used in the current implementation. Defaults to None.
+            lengths (torch.Tensor, optional): Placeholder for future bidirectional models. Not used in the current implementation. Defaults to None.
 
-        integration_timesteps : Tensor, optional
-            Placeholder for async models. Not used in the current implementation.
-
-        lengths : Tensor, optional
-            Placeholder for future bidirectional models. Not used in the current implementation.
-
-        Returns
-        -------
-        Tensor
-            Output sequence of shape (B, L, H_out), where H_out is the output channel dimension.
+        Returns:
+            torch.Tensor: Output sequence of shape (B, L, H_out), where H_out is the output channel dimension.
         """
         self.seq_len = x.shape[1]
         u = x  # (B, L, H_in)
@@ -184,10 +179,13 @@ class CentaurusBase(LTI_LRNN, ABC):
         """
         Allocate initial streaming state and cache matrices.
 
-        Returns
-        -------
-        Dict[str, Any]
-            Cache dict with initial state and precomputed discrete parameters.
+        Args:
+            batch_size (int): The batch size.
+            max_seqlen (int, optional): Maximum sequence length. Defaults to 1.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Dict[str, Any]: Cache dict with initial state and precomputed discrete parameters.
         """
         dev = self.A.device
         cdt = (
@@ -226,19 +224,15 @@ class CentaurusBase(LTI_LRNN, ABC):
         This method performs one recurrent update of the Centaurus block using
         the cached discrete-time parameters in the (B, N, M) layout.
 
-        Inputs
-        ------
-        x : torch.Tensor
-            Input tensor of shape (B, H_in) - the current timestep input.
-        inference_cache : Dict[str, Any]
-            Cache from allocate_inference_cache().
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, H_in) - the current timestep input.
+            inference_cache (Dict[str, Any]): Cache from allocate_inference_cache().
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-        y : torch.Tensor
-            Output tensor of shape (B, H_out) (real).
-        inference_cache : Dict[str, Any]
-            Updated cache dictionary.
+        Returns:
+            tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
+                - y (torch.Tensor): Output tensor of shape (B, H_out) (real).
+                - inference_cache (Dict[str, Any]): Updated cache dictionary.
         """
 
         dev = x.device
@@ -266,15 +260,15 @@ class CentaurusBase(LTI_LRNN, ABC):
 
 
 class CentaurusNeck(CentaurusBase):
-    """Bottleneck block with dense in/out projections.
+    """
+    Bottleneck block with dense in/out projections.
 
-    Example
-    -------
-    >>> model = CentaurusNeck(d_model=64, d_state=64, sub_state_dim=8)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = CentaurusNeck(d_model=64, d_state=64, sub_state_dim=8)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def _init_mode_parameters(self) -> None:
@@ -294,15 +288,15 @@ class CentaurusNeck(CentaurusBase):
 
 
 class CentaurusDWS(CentaurusBase):
-    """Depthwise-separable block with one state per channel.
+    """
+    Depthwise-separable block with one state per channel.
 
-    Example
-    -------
-    >>> model = CentaurusDWS(d_model=64, d_state=64, sub_state_dim=8)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = CentaurusDWS(d_model=64, d_state=64, sub_state_dim=8)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def _init_mode_parameters(self) -> None:
@@ -319,15 +313,15 @@ class CentaurusDWS(CentaurusBase):
 
 
 class CentaurusFull(CentaurusBase):
-    """Fully connected block with a state per (in, out) pair.
+    """
+    Fully connected block with a state per (in, out) pair.
 
-    Example
-    -------
-    >>> model = CentaurusFull(d_model=64, d_state=64, sub_state_dim=8)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = CentaurusFull(d_model=64, d_state=64, sub_state_dim=8)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def _init_mode_parameters(self) -> None:
@@ -391,19 +385,18 @@ class CentaurusFull(CentaurusBase):
 
 
 class CentaurusPWNeck(CentaurusBase):
-    """Pointwise bottleneck (s5 in public implementations) that
-    flattens (N, M) -> (N*M).
+    """
+    Pointwise bottleneck (s5 in public implementations) that flattens (N, M) -> (N*M).
 
     This variant removes E-mixing and repeats delta over M sub-states per state,
     yielding independent SISO lanes aggregated in a single flattened axis.
 
-    Example
-    -------
-    >>> model = CentaurusPWNeck(d_model=64, d_state=64, sub_state_dim=8)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = CentaurusPWNeck(d_model=64, d_state=64, sub_state_dim=8)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def _init_mode_parameters(self) -> None:
@@ -525,15 +518,23 @@ class CentaurusPWNeck(CentaurusBase):
 
 
 class Centaurus:
-    """Backwards-compatible wrapper that returns a mode-specific class instance.
+    """
+    Backwards-compatible wrapper that returns a mode-specific class instance.
 
-    Example
-    -------
-    >>> model = Centaurus(d_model=64, d_state=64, sub_state_dim=8, mode="neck")
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = Centaurus(d_model=64, d_state=64, sub_state_dim=8, mode="neck")
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
+
+    Args:
+        d_model (int): The model dimension.
+        d_state (int): The state dimension.
+        sub_state_dim (int): The sub-state dimension.
+        discretization (Literal["zoh", "bilinear", "dirac", "async"], optional): Discretization method. Defaults to "zoh".
+        mode (Literal["neck", "pointwise", "pw", "s5", "dws", "full"], optional): The Centaurus mode to instantiate. Defaults to "neck".
+        **kwargs: Additional arguments passed to the specific mode class.
     """
 
     def __new__(

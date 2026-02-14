@@ -17,6 +17,17 @@ from lrnnx.models.lti.base import LTI_LRNN
 
 
 class S5(LTI_LRNN):
+    """
+    Basic S5 State Space Model.
+    Reference: https://openreview.net/forum?id=Ai8Hw3AXqks
+
+    Args:
+        d_model (int): Model dimension.
+        d_state (int): State dimension (P in the original paper).
+        discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]): Discretization method to use.
+        conj_sym (bool, optional): If True, uses conjugate symmetry for the state space model. Defaults to False.
+    """
+
     def __init__(
         self,
         d_model: int,
@@ -29,17 +40,6 @@ class S5(LTI_LRNN):
         ],
         conj_sym: bool = False,  # if True, uses conjugate symmetry for the state space model.
     ):
-        """
-        Initialize S5 model.
-
-        Args
-        ----
-            d_model (int): Model dimension
-            d_state (int): State dimension
-            discretization (Literal): Discretization method to use.
-                Options: "zoh", "bilinear", "dirac", "no_discretization".
-            conj_sym (bool): If True, uses conjugate symmetry for the state space model.
-        """
         super().__init__(discretization=discretization)
 
         self.d_model = d_model
@@ -98,14 +98,11 @@ class S5(LTI_LRNN):
         """
         Discretizes the continuous-time system matrices A and B using the specified discretization method.
 
-        Returns
-        -------
-            tuple[torch.Tensor, Union[torch.Tensor, float], torch.Tensor]:
-                A tuple containing:
-
-                - A_bar (Tensor): Discretized system matrix A, shape (N,)
-                - gamma_bar (Union[Tensor, float]): Input normalizer, shape (N,) or a float
-                - C_complex (Tensor): Complex output matrix C, shape (H, N)
+        Returns:
+            tuple[torch.Tensor, Union[torch.Tensor, float], torch.Tensor]: A tuple containing:
+                - A_bar (torch.Tensor): Discretized system matrix A, shape ``(N,)``.
+                - gamma_bar (Union[torch.Tensor, float]): Input normalizer, shape ``(N,)`` or a float.
+                - C_complex (torch.Tensor): Complex output matrix C, shape ``(H, N)``.
         """
         log_A_real, A_imag = self.A.T  # (2, state_dim)
         dt = self.log_dt.exp()  # log time steps converted to real time.
@@ -132,18 +129,17 @@ class S5(LTI_LRNN):
         gamma_bar: Union[Tensor, float],
     ):
         """
-        Computes the kernel matrices for the S5 model
-        A^t and B_bar.
+        Computes the kernel matrices for the S5 model: A^t and B_bar.
 
         Args:
             L (int): Length of the input sequence.
-            A_bar (Tensor): Discretized system matrix A, shape (N,).
-            gamma_bar (Union[Tensor, float]): Input normalizer, shape (N,) or a float.
+            A_bar (torch.Tensor): Discretized system matrix A, shape ``(N,)``.
+            gamma_bar (Union[torch.Tensor, float]): Input normalizer, shape ``(N,)`` or a float.
 
         Returns:
-            tuple[Tensor, Tensor]: A tuple containing:
-                - A_power (Tensor): Power of the discretized system matrix A, shape (N, L).
-                - B_bar (Tensor): Normalized input projection matrix, shape (N, H).
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - A_power (torch.Tensor): Power of the discretized system matrix A, shape ``(N, L)``.
+                - B_bar (torch.Tensor): Normalized input projection matrix, shape ``(N, H)``.
         """
         # Compute B_bar
         if isinstance(gamma_bar, float):
@@ -168,16 +164,15 @@ class S5(LTI_LRNN):
         """
         Forward pass of the S5 SSM using FFT-based convolution.
 
-        Args
-        ----
-            x (Tensor): Input tensor of shape (B, L, H)
-            integration_timesteps (Tensor, optional): Not used by S5 (LTI model).
-                Kept for interface compatibility with LTV models.
-            lengths (Tensor, optional): Lengths of the input sequences, shape (B,). TODO: Support bidirectional models
+        Args:
+            x (torch.Tensor): Input tensor of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): Not used by S5 (LTI model).
+                Kept for interface compatibility with LTV models. Defaults to None.
+            lengths (torch.Tensor, optional): Lengths of the input sequences, shape ``(B,)``.
+                TODO: Support bidirectional models. Defaults to None.
 
-        Returns
-        -------
-            Tensor: Output tensor of shape (B, L, H)
+        Returns:
+            torch.Tensor: Output tensor of shape ``(B, L, H)``.
         """
         if x.dim() != 3:
             raise ValueError(
@@ -201,15 +196,14 @@ class S5(LTI_LRNN):
         """
         Performs a single recurrent step of the S5 model.
 
-        Args
-        ----
-            x (torch.Tensor): Input at current time step, shape (B, H)
-            inference_cache (Dict[str, Any]): Cache from allocate_inference_cache()
+        Args:
+            x (torch.Tensor): Input at current time step, shape ``(B, H)``.
+            inference_cache (Dict[str, Any]): Cache from ``allocate_inference_cache()``
                 containing "lrnn_state" and pre-computed matrices.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-            Tuple[torch.Tensor, Dict[str, Any]]: Output y_t of shape (B, H)
+        Returns:
+            tuple[torch.Tensor, Dict[str, Any]]: Output y_t of shape ``(B, H)``
                 and updated cache dictionary.
         """
 
@@ -247,16 +241,14 @@ class S5(LTI_LRNN):
         """
         Allocates cache for inference.
 
-        Args
-        ----
+        Args:
             batch_size (int): The batch size for the input data.
-            max_seqlen (int): Maximum sequence length (unused, kept for
-                interface consistency with LTV models).
-            dtype: Data type for allocated tensors (unused).
+            max_seqlen (int, optional): Maximum sequence length (unused, kept for
+                interface consistency with LTV models). Defaults to 1.
+            dtype (torch.dtype, optional): Data type for allocated tensors (unused). Defaults to None.
             **kwargs: Additional model-specific arguments.
 
-        Returns
-        -------
+        Returns:
             Dict[str, Any]: Cache dict with "lrnn_state" and
                 pre-computed discrete matrices.
         """

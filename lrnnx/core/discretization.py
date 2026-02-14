@@ -12,24 +12,24 @@ def zoh(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, Tensor]:
     """
-    Zero-Order Hold (ZOH) discretization method, used across most models,
-    $$
-        A_bar = exp{delta * A}
-        gamma_bar = A^{-1} (A_bar - I)
-    $$
+    Zero-Order Hold (ZOH) discretization method, used across most models.
+
+    .. math::
+        \\bar{A} &= \\exp(\\Delta A) \\\\
+        \\bar{\\gamma} &= A^{-1} (\\bar{A} - I)
+
     Reference: https://hazyresearch.stanford.edu/blog/2022-01-14-s4-3
 
-    Args
-    ----
-        A (Tensor): Continuous-time system matrix, shape: (N,), i.e., only diagonal elements.
-        delta (Tensor): Time step for discretization.
-        integration_timesteps (Tensor, optional): Not used in ZOH discretization.
+    Args:
+        A (torch.Tensor): The continuous-time state matrix.
+        delta (torch.Tensor): The discretization step size.
+        integration_timesteps (torch.Tensor, optional): Not used in ZOH discretization. Defaults to None.
 
-    Returns
-    -------
-        tuple[Tensor, Tensor]: Discretized system, A_bar and input_normalizer, gamma_bar.
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - A_bar (torch.Tensor): The discretized system matrix.
+            - gamma_bar (torch.Tensor): The input normalizer.
     """
-
     Identity = torch.ones(A.shape[0], device=A.device)
     A_bar = torch.exp(delta * A)
     gamma_bar = (1 / A) * (A_bar - Identity)
@@ -40,24 +40,24 @@ def bilinear(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, Tensor]:
     """
-    Bilinear method first used in S4,
-    $$
-        A_bar = (I + 0.5 * delta * A)^{-1} (I - 0.5 * delta * A)
-        gamma_bar = (I + 0.5 * delta * A)^{-1} delta
-    $$
+    Bilinear method first used in S4.
+
+    .. math::
+        \\bar{A} &= (I + 0.5 \\Delta A)^{-1} (I - 0.5 \\Delta A) \\\\
+        \\bar{\\gamma} &= (I + 0.5 \\Delta A)^{-1} \\Delta
+    
     Reference: https://hazyresearch.stanford.edu/blog/2022-01-14-s4-3
 
-    Args
-    ----
-        A (Tensor): Continuous-time system matrix, shape: (N,), i.e., only diagonal elements.
-        delta (Tensor): Time step for discretization.
-        integration_timesteps (Tensor, optional): Not used in bilinear discretization.
+    Args:
+        A (torch.Tensor): Continuous-time system matrix, shape: (N,), i.e., only diagonal elements.
+        delta (torch.Tensor): Time step for discretization.
+        integration_timesteps (torch.Tensor, optional): Not used in bilinear discretization. Defaults to None.
 
-    Returns
-    -------
-        tuple[Tensor, Tensor]: Discretized system, A_bar and input_normalizer, gamma_bar.
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - A_bar (torch.Tensor): The discretized system matrix.
+            - gamma_bar (torch.Tensor): The input normalizer.
     """
-
     Identity = torch.ones(A.shape[0], device=A.device)
     A_bar = (1 / (Identity + 0.5 * delta * A)) * (Identity - 0.5 * delta * A)
     gamma_bar = (1 / (Identity + 0.5 * delta * A)) * delta
@@ -68,24 +68,24 @@ def dirac(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, float]:
     """
-    Dirac discretization method,
-    $$
-        A_bar = exp{delta * A}
-        gamma_bar = 1.0
-    $$
+    Dirac discretization method.
+
+    .. math::
+        \\bar{A} &= \\exp(\\Delta A) \\\\
+        \\bar{\\gamma} &= 1.0
+    
     Reference: https://github.com/Efficient-Scalable-Machine-Learning/event-ssm/blob/main/event_ssm/ssm.py
 
-    Args
-    ----
-        A (Tensor): Continuous-time system matrix.
-        delta (Tensor): Time step for discretization.
-        integration_timesteps (Tensor, optional): Not used in dirac discretization.
+    Args:
+        A (torch.Tensor): Continuous-time system matrix.
+        delta (torch.Tensor): Time step for discretization.
+        integration_timesteps (torch.Tensor, optional): Not used in dirac discretization. Defaults to None.
 
-    Returns
-    -------
-        tuple[Tensor, Tensor]: Discretized system, A_bar and input_normalizer, gamma_bar.
+    Returns:
+        tuple[torch.Tensor, float]: A tuple containing:
+            - A_bar (torch.Tensor): The discretized system matrix.
+            - gamma_bar (float): The input normalizer (1.0).
     """
-
     A_bar = torch.exp(delta * A)
     gamma_bar = 1.0
     return A_bar, gamma_bar
@@ -95,24 +95,25 @@ def async_(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, Tensor]:
     """
-    Asynchronous discretization method, introduced in https://arxiv.org/abs/2404.18508,
-    this helps provide a strong inductive bias for asynchronous event-streams,
-    $$
-        A_bar = exp{delta * integration_timesteps * A}
-        gamma_bar = A^{-1} (exp{delta * A} - I)
-    $$
-    This method is only for legacy reasons, it is not possible to use this method (or any other
+    Asynchronous discretization method, introduced in https://arxiv.org/abs/2404.18508.
+    This helps provide a strong inductive bias for asynchronous event-streams.
+
+    .. math::
+        \\bar{A} &= \\exp(\\Delta \\cdot \\text{integration\_timesteps} \\cdot A) \\\\
+        \\bar{\\gamma} &= A^{-1} (\\exp(\\Delta A) - I)
+    
+    This method is only for legacy reasons; it is not possible to use this method (or any other
     discretization with async timesteps) with LTI models.
 
-    Args
-    ----
-        A (Tensor): Continuous-time system matrix.
-        delta (Tensor): Time step for discretization.
-        integration_timesteps (Tensor): Timesteps for async discretization, ideally of shape (B, L), i.e., difference in timesteps of events.
+    Args:
+        A (torch.Tensor): Continuous-time system matrix.
+        delta (torch.Tensor): Time step for discretization.
+        integration_timesteps (torch.Tensor): Timesteps for async discretization, ideally of shape (B, L), i.e., difference in timesteps of events.
 
-    Returns
-    -------
-        tuple[Tensor, Tensor]: Discretized system, A_bar and input_normalizer, gamma_bar.
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            - A_bar (torch.Tensor): The discretized system matrix.
+            - gamma_bar (torch.Tensor): The input normalizer.
     """
     assert (
         integration_timesteps is not None
@@ -129,24 +130,21 @@ def no_discretization(
 ) -> tuple[Tensor, float]:
     """
     No discretization method, identity operation.
-    $$
-        A_bar = A
-        gamma_bar = 1.0
-    $$
 
-    Args
-    ----
-        A (Tensor): Continuous-time system matrix.
-        delta (Tensor): Time step for discretization (unused).
-        integration_timesteps (Tensor, optional): Not used in no_discretization.
+    .. math::
+        \\bar{A} &= A \\\\
+        \\bar{\\gamma} &= 1.0
 
-    Returns
-    -------
-        tuple[Tensor, float]:
-                - A_bar (Tensor): Same as A.
-                - gamma_bar (float): 1.0, as B_bar = B.
+    Args:
+        A (torch.Tensor): Continuous-time system matrix.
+        delta (torch.Tensor): Time step for discretization (unused).
+        integration_timesteps (torch.Tensor, optional): Not used in no_discretization. Defaults to None.
+
+    Returns:
+        tuple[torch.Tensor, float]: A tuple containing:
+            - A_bar (torch.Tensor): Same as A.
+            - gamma_bar (float): 1.0, as B_bar = B.
     """
-
     return A, 1.0
 
 

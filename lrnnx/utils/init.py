@@ -12,7 +12,15 @@ from torch import Tensor
 
 
 def make_HiPPO(N: int) -> np.ndarray:
-    """Create a HiPPO-LegS matrix."""
+    """
+    Create a HiPPO-LegS matrix.
+
+    Args:
+        N (int): The dimension of the HiPPO matrix.
+
+    Returns:
+        np.ndarray: The generated HiPPO-LegS matrix of shape ``(N, N)``.
+    """
     P = np.sqrt(1 + 2 * np.arange(N))
     A = P[:, np.newaxis] * P[np.newaxis, :]
     A = np.tril(A) - np.diag(np.arange(N))
@@ -20,7 +28,16 @@ def make_HiPPO(N: int) -> np.ndarray:
 
 
 def make_NPLR_HiPPO(N: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Make NPLR representation of HiPPO-LegS."""
+    """
+    Make NPLR representation of HiPPO-LegS.
+
+    Args:
+        N (int): The dimension of the HiPPO matrix.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the
+            HiPPO matrix, P vector, and B vector.
+    """
     hippo = make_HiPPO(N)
     P = np.sqrt(np.arange(N) + 0.5)
     B = np.sqrt(2 * np.arange(N) + 1.0)
@@ -30,7 +47,16 @@ def make_NPLR_HiPPO(N: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 def make_DPLR_HiPPO(
     N: int,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Make DPLR representation of HiPPO-LegS."""
+    """
+    Make DPLR representation of HiPPO-LegS.
+
+    Args:
+        N (int): The dimension of the HiPPO matrix.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple
+            containing Lambda, P_transformed, B_transformed, V, and B_orig.
+    """
     A, P, B = make_NPLR_HiPPO(N)
     S = A + P[:, np.newaxis] * P[np.newaxis, :]
     S_diag = np.diagonal(S)
@@ -48,15 +74,16 @@ def init_log_steps(
     dt_min: float = 0.001,
     dt_max: float = 0.1,
 ) -> Tensor:
-    """Initialize learnable timescale parameters.
+    """
+    Initialize learnable timescale parameters.
 
     Args:
-        P: State dimension (number of timescales).
-        dt_min: Minimum timescale.
-        dt_max: Maximum timescale.
+        P (int): State dimension (number of timescales).
+        dt_min (float, optional): Minimum timescale. Defaults to 0.001.
+        dt_max (float, optional): Maximum timescale. Defaults to 0.1.
 
     Returns:
-        Log-timescales of shape (P,).
+        torch.Tensor: Log-timescales of shape ``(P,)``.
     """
     return torch.empty(P).uniform_(math.log(dt_min), math.log(dt_max))
 
@@ -66,15 +93,16 @@ def init_VinvB(
     local_P: int,
     H: int,
 ) -> Tensor:
-    """Initialize B_tilde = V^{-1} @ B with lecun-style scaling.
+    """
+    Initialize B_tilde = V^{-1} @ B with lecun-style scaling.
 
     Args:
-        Vinv: Inverse eigenvectors of shape (P, local_P).
-        local_P: Local state dimension (2*P if conj_sym else P).
-        H: Hidden dimension.
+        Vinv (np.ndarray): Inverse eigenvectors of shape ``(P, local_P)``.
+        local_P (int): Local state dimension (2*P if conj_sym else P).
+        H (int): Hidden dimension.
 
     Returns:
-        B_tilde of shape (P, H, 2) for real/imag parameterization.
+        torch.Tensor: B_tilde of shape ``(P, H, 2)`` for real/imag parameterization.
     """
     B = np.random.randn(local_P, H).astype(np.float32) * np.sqrt(1.0 / local_P)
     VinvB = Vinv @ B
@@ -88,15 +116,16 @@ def init_CV(
     local_P: int,
     H: int,
 ) -> Tensor:
-    """Initialize C_tilde = C @ V with truncated normal.
+    """
+    Initialize C_tilde = C @ V with truncated normal.
 
     Args:
-        V: Eigenvectors of shape (local_P, P).
-        local_P: Local state dimension (2*P if conj_sym else P).
-        H: Hidden dimension.
+        V (np.ndarray): Eigenvectors of shape ``(local_P, P)``.
+        local_P (int): Local state dimension (2*P if conj_sym else P).
+        H (int): Hidden dimension.
 
     Returns:
-        C_tilde of shape (H, P, 2) for real/imag parameterization.
+        torch.Tensor: C_tilde of shape ``(H, P, 2)`` for real/imag parameterization.
     """
     C = (
         np.random.randn(H, local_P).astype(np.float32)

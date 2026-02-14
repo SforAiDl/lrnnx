@@ -66,7 +66,10 @@ def _simplified_state_update_kernel(
     HAS_DELTAA: tl.constexpr,
     DISCRETIZATION: tl.constexpr,  # 0=bilinear, 1=zoh, 2=dirac
 ):
-    """Each program handles one batch element and a tile of H output dims."""
+    """
+    Triton JIT kernel for the simplified state update. 
+    Each program handles one batch element and a tile of H output dims.
+    """
     pid_b = tl.program_id(axis=0)
     pid_h = tl.program_id(axis=1)
 
@@ -267,21 +270,19 @@ def simplified_state_update(
     Triton-accelerated single-step state update for S5-style (simplified) SSMs.
 
     Args:
-        state:  Complex hidden state, shape (batch, P)  dtype=complex64.
-                **Modified in-place**.
-        x:      Real input at current timestep, shape (batch, H)  dtype=float32.
-        dt:     Real timestep, shape (batch, P) or (P,)  dtype=float32.
-        A:      Complex eigenvalues,  shape (P,)  dtype=complex64.
-        B:      Complex projection,   shape (P, H)  dtype=complex64.
-        C:      Complex projection,   shape (H, P)  dtype=complex64.
-        D:      Real skip connection, shape (H, H)  dtype=float32, or None.
-        deltaA: Optional separate timestep for A discretization (batch, P)
-                dtype=float32.  If None, *dt* is used for both A and B.
-        discretization: 'bilinear', 'zoh', or 'dirac'.
-        conj_sym: If True output is 2 * Re(...), else Re(...).
+        state (torch.Tensor): Complex hidden state of shape ``(batch, P)``, dtype ``complex64``. **Modified in-place**.
+        x (torch.Tensor): Real input at current timestep of shape ``(batch, H)``, dtype ``float32``.
+        dt (torch.Tensor): Real timestep of shape ``(batch, P)`` or ``(P,)``, dtype ``float32``.
+        A (torch.Tensor): Complex eigenvalues of shape ``(P,)``, dtype ``complex64``.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype ``complex64``.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype ``complex64``.
+        D (torch.Tensor, optional): Real skip connection matrix of shape ``(H, H)``, dtype ``float32``. Defaults to None.
+        deltaA (torch.Tensor, optional): Optional separate timestep for A discretization of shape ``(batch, P)``, dtype ``float32``. If None, ``dt`` is used for both A and B. Defaults to None.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', or 'dirac'). Defaults to "bilinear".
+        conj_sym (bool, optional): If True, output is 2 * Re(...), else Re(...). Defaults to True.
 
     Returns:
-        out:  Real output, shape (batch, H)  dtype=float32.
+        torch.Tensor: Real output tensor of shape ``(batch, H)``, dtype ``float32``.
     """
     assert state.is_complex(), "state must be complex64"
     assert A.is_complex(), "A must be complex64"
@@ -416,7 +417,20 @@ def simplified_state_update_ref(
     """
     Pure-PyTorch reference for a single-step S5 state update.
 
-    Same API as :func:simplified_state_update.
+    Args:
+        state (torch.Tensor): Complex hidden state of shape ``(batch, P)``, dtype ``complex64``. **Modified in-place**.
+        x (torch.Tensor): Real input at current timestep of shape ``(batch, H)``, dtype ``float32``.
+        dt (torch.Tensor): Real timestep of shape ``(batch, P)`` or ``(P,)``, dtype ``float32``.
+        A (torch.Tensor): Complex eigenvalues of shape ``(P,)``, dtype ``complex64``.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype ``complex64``.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype ``complex64``.
+        D (torch.Tensor, optional): Real skip connection matrix of shape ``(H, H)``, dtype ``float32``. Defaults to None.
+        deltaA (torch.Tensor, optional): Optional separate timestep for A discretization of shape ``(batch, P)``, dtype ``float32``. Defaults to None.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', or 'dirac'). Defaults to "bilinear".
+        conj_sym (bool, optional): If True, output is 2 * Re(...), else Re(...). Defaults to True.
+
+    Returns:
+        torch.Tensor: Real output tensor of shape ``(batch, H)``, dtype ``float32``.
     """
     assert state.is_complex()
     assert A.is_complex()

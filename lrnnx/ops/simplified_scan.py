@@ -36,14 +36,21 @@ class SimplifiedScanFn(torch.autograd.Function):
         return_last_state=False,
     ) -> torch.Tensor:
         """
+        Forward pass for the simplified SSM scan.
+
         Args:
-            u: Complex input (batch, H, seqlen) - H is hidden/input dimension
-            delta: Real timestep (batch, P, seqlen) - P is state dimension
-            A: Complex eigenvalues (P,) or (P, 1)
-            B: Complex projection (P, H) - projects input to state space
-            C: Complex projection (H, P) - projects state to output
-            deltaA: Optional separate timestep for A discretization (batch, P, seqlen)
-            discretization: Discretization method ('bilinear', 'zoh', 'dirac')
+            ctx (Any): Autograd context.
+            u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``. H is hidden/input dimension.
+            delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``. P is state dimension.
+            A (torch.Tensor): Complex eigenvalues tensor of shape ``(P,)`` or ``(P, 1)``.
+            B (torch.Tensor): Complex projection matrix of shape ``(P, H)``. Projects input to state space.
+            C (torch.Tensor): Complex projection matrix of shape ``(H, P)``. Projects state to output.
+            deltaA (torch.Tensor | None): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``.
+            discretization (str): Discretization method ('bilinear', 'zoh', 'dirac').
+            return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
+
+        Returns:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Output tensor, and optionally the last state.
         """
         # Ensure contiguous
         if u.stride(-1) != 1:
@@ -114,6 +121,16 @@ class SimplifiedScanFn(torch.autograd.Function):
     @staticmethod
     @custom_bwd
     def backward(ctx, dout: torch.Tensor):
+        """
+        Backward pass for the simplified SSM scan.
+
+        Args:
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of the output tensor.
+
+        Returns:
+            tuple: Gradients with respect to inputs (du, ddelta, dA, dB, dC, ddeltaA, None, None).
+        """
         (
             u,
             delta,
@@ -202,20 +219,20 @@ def simplified_scan_fn(
     Forward: u (B,H,L) -> Bu = B @ u -> kernel -> x (B,P,L) -> y = C @ x -> (B,H,L)
 
     Args:
-        u: Complex input tensor (batch, H, seqlen) dtype=complex64
-        delta: Real timestep tensor (batch, P, seqlen) dtype=float32
-        A: Complex state matrix eigenvalues (P,) or (P, 1) dtype=complex64
-        B: Complex projection matrix (P, H) dtype=complex64 - projects input to state
-        C: Complex projection matrix (H, P) dtype=complex64 - projects state to output
-        deltaA: Optional separate timestep for A discretization (batch, P, seqlen) dtype=float32
-                If provided, A is discretized using deltaA while B uses delta
-        return_last_state: Whether to return the last hidden state
-        discretization: Discretization method ('bilinear', 'zoh', 'dirac')
+        u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+        delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``, dtype=float32.
+        A (torch.Tensor): Complex state matrix eigenvalues of shape ``(P,)`` or ``(P, 1)``, dtype=complex64.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype=complex64. Projects input to state.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype=complex64. Projects state to output.
+        deltaA (torch.Tensor | None, optional): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``, dtype=float32.
+                If provided, A is discretized using deltaA while B uses delta. Defaults to None.
+        return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', 'dirac'). Defaults to "bilinear".
 
     Returns:
-        out: Complex output tensor (batch, H, seqlen) dtype=complex64
-        last_state: If return_last_state=True, returns (out, last_state) tuple
-                   where last_state is (batch, P,) dtype=complex64
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - out (torch.Tensor): Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+            - last_state (torch.Tensor, optional): If return_last_state=True, returns state of shape ``(batch, P)``, dtype=complex64.
     """
     # Validate discretization method
     valid_methods = ("bilinear", "zoh", "dirac")
@@ -248,19 +265,20 @@ def simplified_scan_ref(
     Forward: u (B,H,L) -> Bu = B @ u -> kernel -> x (B,P,L) -> y = C @ x -> (B,H,L)
 
     Args:
-        u: Complex input tensor (batch, H, seqlen) dtype=complex64
-        delta: Real timestep tensor (batch, P, seqlen) dtype=float32
-        A: Complex state matrix eigenvalues (P,) or (P, 1) dtype=complex64
-        B: Complex projection matrix (P, H) dtype=complex64 - projects input to state
-        C: Complex projection matrix (H, P) dtype=complex64 - projects state to output
-        deltaA: Optional separate timestep for A discretization (batch, P, seqlen)
-                If provided, A is discretized using deltaA while B uses delta
-        return_last_state: Whether to return the last hidden state
-        discretization: Discretization method ('bilinear', 'zoh', 'dirac')
+        u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+        delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``, dtype=float32.
+        A (torch.Tensor): Complex state matrix eigenvalues of shape ``(P,)`` or ``(P, 1)``, dtype=complex64.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype=complex64. Projects input to state.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype=complex64. Projects state to output.
+        deltaA (torch.Tensor | None, optional): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``.
+                If provided, A is discretized using deltaA while B uses delta. Defaults to None.
+        return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', 'dirac'). Defaults to "bilinear".
 
     Returns:
-        out: Complex output tensor (batch, H, seqlen) dtype=complex64
-        last_state: If return_last_state=True, also returns (batch, P) complex64
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - out (torch.Tensor): Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+            - last_state (torch.Tensor, optional): If return_last_state=True, also returns state of shape ``(batch, P)``, dtype=complex64.
     """
     dtype_in = u.dtype
     assert u.is_complex(), "Input u must be complex (complex64)"
@@ -348,8 +366,8 @@ class S5InnerFn(torch.autograd.Function):
     1. Conjugate symmetry handling (2 * real if conj_sym else real)
     2. Skip connection with D matrix
 
-    The scan kernel computes: x[t] = A_bar * x[t-1] + B_bar * u[t], y[t] = C @ x[t]
-    This function then applies: out = (2 if conj_sym else 1) * Re(y) + D * u
+    The scan kernel computes: x[t] = A_bar * x[t-1] + B_bar * (B @ u)[t], y = C @ x
+    This function then applies: out = (2 if conj_sym else 1) * Re(y) + D * u.real
     """
 
     @staticmethod
@@ -367,18 +385,22 @@ class S5InnerFn(torch.autograd.Function):
         conj_sym: bool,
     ):
         """
+        Forward pass for the complete S5 model inner function.
+
         Args:
-            u: Complex input (batch, H, seqlen) dtype=complex64
-            delta: Real timestep (batch, P, seqlen) dtype=float32
-            A: Complex eigenvalues (P,) or (P, 1) dtype=complex64
-            B: Complex projection (P, H) dtype=complex64
-            C: Complex projection (H, P) dtype=complex64
-            D: Real skip connection (H,) dtype=float32
-            discretization: 'bilinear', 'zoh', or 'dirac'
-            conj_sym: If True, output is 2 * Re(y), else Re(y)
+            ctx (Any): Autograd context.
+            u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+            delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``, dtype=float32.
+            A (torch.Tensor): Complex eigenvalues tensor of shape ``(P,)`` or ``(P, 1)``, dtype=complex64.
+            B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype=complex64.
+            C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype=complex64.
+            D (torch.Tensor): Real skip connection tensor of shape ``(H,)``, dtype=float32.
+            deltaA (torch.Tensor | None): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``.
+            discretization (str): Discretization method ('bilinear', 'zoh', or 'dirac').
+            conj_sym (bool): If True, output is 2 * Re(y), else Re(y).
 
         Returns:
-            y: Real output (batch, H, seqlen) dtype=float32
+            torch.Tensor: Real output tensor of shape ``(batch, H, seqlen)``, dtype=float32.
         """
         # Ensure contiguous
         if u.stride(-1) != 1:
@@ -457,10 +479,11 @@ class S5InnerFn(torch.autograd.Function):
         Backward pass computing gradients for all inputs.
 
         Args:
-            dout: Gradient of loss w.r.t. output (batch, H, seqlen) real
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of loss w.r.t. output tensor of shape ``(batch, H, seqlen)``, real.
 
         Returns:
-            Gradients for: u, delta, A, B, C, D, None, None
+            tuple: Gradients for u, delta, A, B, C, D, deltaA, None, None.
         """
         (
             u,
@@ -566,17 +589,18 @@ def s5_inner_fn(
     3. Skip connection: out = y_real + D * u.real
 
     Args:
-        u: Complex input (batch, H, seqlen) dtype=complex64
-        delta: Real timestep (batch, P, seqlen) dtype=float32
-        A: Complex eigenvalues (P,) dtype=complex64
-        B: Complex projection (P, H) dtype=complex64
-        C: Complex projection (H, P) dtype=complex64
-        D: Real skip connection (H,) dtype=float32
-        discretization: 'bilinear', 'zoh', or 'dirac'
-        conj_sym: If True, output is 2 * Re(y), else Re(y)
+        u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+        delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``, dtype=float32.
+        A (torch.Tensor): Complex eigenvalues tensor of shape ``(P,)`` or ``(P, 1)``, dtype=complex64.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype=complex64.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype=complex64.
+        D (torch.Tensor): Real skip connection tensor of shape ``(H,)``, dtype=float32.
+        deltaA (torch.Tensor | None, optional): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``. Defaults to None.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', or 'dirac'). Defaults to "bilinear".
+        conj_sym (bool, optional): If True, output is 2 * Re(y), else Re(y). Defaults to True.
 
     Returns:
-        out: Real output (batch, H, seqlen) dtype=float32
+        torch.Tensor: Real output tensor of shape ``(batch, H, seqlen)``, dtype=float32.
     """
     return S5InnerFn.apply(
         u, delta, A, B, C, D, deltaA, discretization, conj_sym
@@ -603,17 +627,18 @@ def s5_inner_ref(
     3. Skip connection: out = y_real + D * u.real
 
     Args:
-        u: Complex input (batch, H, seqlen) dtype=complex64
-        delta: Real timestep (batch, P, seqlen) dtype=float32
-        A: Complex eigenvalues (P,) dtype=complex64
-        B: Complex projection (P, H) dtype=complex64
-        C: Complex projection (H, P) dtype=complex64
-        D: Real skip connection (H,) dtype=float32
-        discretization: 'bilinear', 'zoh', or 'dirac'
-        conj_sym: If True, output is 2 * Re(y), else Re(y)
+        u (torch.Tensor): Complex input tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+        delta (torch.Tensor): Real timestep tensor of shape ``(batch, P, seqlen)``, dtype=float32.
+        A (torch.Tensor): Complex eigenvalues tensor of shape ``(P,)`` or ``(P, 1)``, dtype=complex64.
+        B (torch.Tensor): Complex projection matrix of shape ``(P, H)``, dtype=complex64.
+        C (torch.Tensor): Complex projection matrix of shape ``(H, P)``, dtype=complex64.
+        D (torch.Tensor): Real skip connection tensor of shape ``(H,)``, dtype=float32.
+        deltaA (torch.Tensor | None, optional): Optional separate timestep for A discretization of shape ``(batch, P, seqlen)``. Defaults to None.
+        discretization (str, optional): Discretization method ('bilinear', 'zoh', or 'dirac'). Defaults to "bilinear".
+        conj_sym (bool, optional): If True, output is 2 * Re(y), else Re(y). Defaults to True.
 
     Returns:
-        out: Real output (batch, H, seqlen) dtype=float32
+        torch.Tensor: Real output tensor of shape ``(batch, H, seqlen)``, dtype=float32.
     """
     # Use simplified_scan_ref for the SSM computation
     y_complex = simplified_scan_ref(

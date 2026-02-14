@@ -31,13 +31,13 @@ def _update_kv_cache(kv, inference_params, layer_idx):
     Update key-value cache for a specific layer during inference.
 
     Args:
-        kv (Tensor): Key-value tensor of shape (batch_size, seqlen, 2, num_heads_kv, head_dim)
-            or (batch_size, 1, 2, num_heads_kv, head_dim) for single token updates
-        inference_params: Inference parameters containing cache information and offsets
-        layer_idx (int): Index of the layer whose cache is being updated
+        kv (torch.Tensor): Key-value tensor of shape ``(batch_size, seqlen, 2, num_heads_kv, head_dim)``
+            or ``(batch_size, 1, 2, num_heads_kv, head_dim)`` for single token updates.
+        inference_params (Any): Inference parameters containing cache information and offsets.
+        layer_idx (int): Index of the layer whose cache is being updated.
 
     Returns:
-        Tensor: Updated key-value cache of shape (batch_size, current_seqlen, 2, num_heads_kv, head_dim)
+        torch.Tensor: Updated key-value cache of shape ``(batch_size, current_seqlen, 2, num_heads_kv, head_dim)``.
     """
     # Pre-allocate memory for key-values for inference.
     num_heads, head_dim = kv.shape[-2:]
@@ -56,7 +56,37 @@ def _update_kv_cache(kv, inference_params, layer_idx):
 
 
 class MHA(nn.Module):
-    """Multi-head self-attention and cross-attention with optional convolution and rotary embeddings."""
+    """
+    Multi-head self-attention and cross-attention with optional convolution and rotary embeddings.
+
+    This implementation supports various attention configurations including:
+    
+    * Multi-Query Attention (MQA) and Grouped-Query Attention (GQA)
+    * Optional 1D convolution for local context
+    * Rotary position embeddings
+    * Integrated MLP for efficiency
+    * Causal and non-causal attention
+
+    Args:
+        embed_dim (int): Embedding dimension.
+        num_heads (int): Number of attention heads.
+        num_heads_kv (int, optional): Number of key-value heads for MQA/GQA.
+            If None, uses num_heads (standard MHA). Defaults to None.
+        head_dim (int, optional): Dimension per head. If None, uses ``embed_dim // num_heads``. Defaults to None.
+        mlp_dim (int, optional): Dimension of integrated MLP. If 0, no MLP is used. Defaults to 0.
+        qkv_proj_bias (bool, optional): Whether to use bias in QKV projection. Defaults to True.
+        out_proj_bias (bool, optional): Whether to use bias in output projection. Defaults to True.
+        softmax_scale (float, optional): Scale factor for attention scores.
+            If None, uses ``1/sqrt(head_dim)``. Defaults to None.
+        causal (bool, optional): Whether to use causal (masked) attention. Defaults to False.
+        layer_idx (int, optional): Layer index for caching during inference. Defaults to None.
+        d_conv (int, optional): Kernel size for 1D convolution. If 0, no convolution. Defaults to 0.
+        rotary_emb_dim (int, optional): Dimension for rotary embeddings. If 0, no rotary embeddings. Defaults to 0.
+        rotary_emb_base (float, optional): Base for rotary embeddings. Defaults to 10000.0.
+        rotary_emb_interleaved (bool, optional): Whether to use interleaved rotary embeddings. Defaults to False.
+        device (torch.device, optional): Device to place tensors on. Defaults to None.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -77,36 +107,6 @@ class MHA(nn.Module):
         device=None,
         dtype=None,
     ) -> None:
-        """
-        Initialize Multi-Head Attention module with optional features.
-
-        This implementation supports various attention configurations including:
-        - Multi-Query Attention (MQA) and Grouped-Query Attention (GQA)
-        - Optional 1D convolution for local context
-        - Rotary position embeddings
-        - Integrated MLP for efficiency
-        - Causal and non-causal attention
-
-        Args:
-            embed_dim (int): Embedding dimension
-            num_heads (int): Number of attention heads
-            num_heads_kv (int, optional): Number of key-value heads for MQA/GQA.
-                If None, uses num_heads (standard MHA)
-            head_dim (int, optional): Dimension per head. If None, uses embed_dim // num_heads
-            mlp_dim (int): Dimension of integrated MLP. If 0, no MLP is used
-            qkv_proj_bias (bool): Whether to use bias in QKV projection. Defaults to True
-            out_proj_bias (bool): Whether to use bias in output projection. Defaults to True
-            softmax_scale (float, optional): Scale factor for attention scores.
-                If None, uses 1/sqrt(head_dim)
-            causal (bool): Whether to use causal (masked) attention. Defaults to False
-            layer_idx (int, optional): Layer index for caching during inference
-            d_conv (int): Kernel size for 1D convolution. If 0, no convolution
-            rotary_emb_dim (int): Dimension for rotary embeddings. If 0, no rotary embeddings
-            rotary_emb_base (float): Base for rotary embeddings. Defaults to 10000.0
-            rotary_emb_interleaved (bool): Whether to use interleaved rotary embeddings
-            device (torch.device, optional): Device to place tensors on
-            dtype (torch.dtype, optional): Data type for tensors
-        """
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
         self.embed_dim = embed_dim
@@ -172,15 +172,15 @@ class MHA(nn.Module):
         Allocate inference cache for key-value states and convolution states.
 
         Args:
-            batch_size (int): Batch size for inference
-            max_seqlen (int): Maximum sequence length for inference
+            batch_size (int): Batch size for inference.
+            max_seqlen (int): Maximum sequence length for inference.
             dtype (torch.dtype, optional): Data type for cache tensors.
-                If None, uses output projection weight dtype
+                If None, uses output projection weight dtype. Defaults to None.
 
         Returns:
-            tuple: (kv_cache, conv_state) where:
-                - kv_cache: Tensor of shape (batch_size, max_seqlen, 2, num_heads_kv, head_dim)
-                - conv_state: Tensor of shape (batch_size, qkv_dim, d_conv) or None if d_conv=0
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - kv_cache (torch.Tensor): Tensor of shape ``(batch_size, max_seqlen, 2, num_heads_kv, head_dim)``.
+                - conv_state (torch.Tensor | None): Tensor of shape ``(batch_size, qkv_dim, d_conv)`` or None if ``d_conv=0``.
         """
         dtype = self.out_proj.weight.dtype if dtype is None else dtype
         device = self.out_proj.weight.device
@@ -210,11 +210,11 @@ class MHA(nn.Module):
         Update key-value cache during inference.
 
         Args:
-            kv (Tensor): Key-value tensor of shape (batch_size, seqlen, 2, num_heads_kv, head_dim)
-            inference_params: Inference parameters containing cache information
+            kv (torch.Tensor): Key-value tensor of shape ``(batch_size, seqlen, 2, num_heads_kv, head_dim)``.
+            inference_params (Any): Inference parameters containing cache information.
 
         Returns:
-            Tensor: Updated key-value cache
+            torch.Tensor: Updated key-value cache.
         """
         assert (
             self.layer_idx is not None
@@ -226,17 +226,18 @@ class MHA(nn.Module):
         Fast path that combines rotary embedding, KV cache update, and attention.
 
         This is an optimized implementation that performs three operations in one step:
+        
         1. Apply rotary position embeddings to queries and keys
         2. Update the key-value cache
         3. Compute attention with the updated cache
 
         Args:
-            q (Tensor): Query tensor of shape (batch_size, seqlen_q, num_heads, head_dim)
-            kv (Tensor): Key-value tensor of shape (batch_size, seqlen_k, 2, num_heads_kv, head_dim)
-            inference_params: Inference parameters containing cache and sequence information
+            q (torch.Tensor): Query tensor of shape ``(batch_size, seqlen_q, num_heads, head_dim)``.
+            kv (torch.Tensor): Key-value tensor of shape ``(batch_size, seqlen_k, 2, num_heads_kv, head_dim)``.
+            inference_params (Any): Inference parameters containing cache and sequence information.
 
         Returns:
-            Tensor: Attention output of shape (batch_size, seqlen_q, num_heads, head_dim)
+            torch.Tensor: Attention output of shape ``(batch_size, seqlen_q, num_heads, head_dim)``.
         """
         assert (
             inference_params is not None and inference_params.seqlen_offset > 0
@@ -285,16 +286,16 @@ class MHA(nn.Module):
         """
         Update key-value cache and compute attention.
 
-        This method handles both initial caching (when seqlen_offset=0) and
+        This method handles both initial caching (when ``seqlen_offset=0``) and
         incremental updates during autoregressive generation.
 
         Args:
-            q (Tensor): Query tensor of shape (batch_size, seqlen_q, num_heads, head_dim)
-            kv (Tensor): Key-value tensor of shape (batch_size, seqlen_k, 2, num_heads_kv, head_dim)
-            inference_params: Inference parameters containing cache and sequence information
+            q (torch.Tensor): Query tensor of shape ``(batch_size, seqlen_q, num_heads, head_dim)``.
+            kv (torch.Tensor): Key-value tensor of shape ``(batch_size, seqlen_k, 2, num_heads_kv, head_dim)``.
+            inference_params (Any): Inference parameters containing cache and sequence information.
 
         Returns:
-            Tensor: Attention output of shape (batch_size, seqlen_q, num_heads, head_dim)
+            torch.Tensor: Attention output of shape ``(batch_size, seqlen_q, num_heads, head_dim)``.
         """
         if (
             inference_params.seqlen_offset == 0
@@ -343,26 +344,27 @@ class MHA(nn.Module):
         Forward pass of Multi-Head Attention.
 
         Performs the complete attention computation including:
+        
         1. QKV projection with optional integrated MLP
         2. Optional 1D convolution for local context
         3. Rotary position embedding (if enabled)
         4. Multi-head attention computation
         5. Output projection
 
-        Args:
-            x (Tensor): Input tensor of shape (batch_size, seq_len, embed_dim)
-            inference_params (optional): Parameters for inference mode containing:
-                - key_value_memory_dict: Cache for storing KV states
-                - seqlen_offset: Current sequence position offset
-                - max_seqlen: Maximum sequence length
-                - lengths_per_sample: Per-sample sequence lengths (optional)
-
-        Returns:
-            Tensor: Output tensor of shape (batch_size, seq_len, embed_dim)
-
         Note:
             During inference, this method automatically allocates and manages
             key-value caches for efficient autoregressive generation.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape ``(batch_size, seq_len, embed_dim)``.
+            inference_params (Any, optional): Parameters for inference mode containing:
+                - key_value_memory_dict: Cache for storing KV states.
+                - seqlen_offset: Current sequence position offset.
+                - max_seqlen: Maximum sequence length.
+                - lengths_per_sample: Per-sample sequence lengths (optional). Defaults to None.
+
+        Returns:
+            torch.Tensor: Output tensor of shape ``(batch_size, seq_len, embed_dim)``.
         """
         if (
             inference_params is not None

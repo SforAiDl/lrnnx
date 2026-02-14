@@ -21,7 +21,7 @@ try:
 except ImportError:
     selective_state_update = None
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 from lrnnx.models.ltv.base import LTV_LRNN
 
@@ -34,33 +34,31 @@ class Mamba(LTV_LRNN):
     discretization (separate dtA and dtB) for event-driven processing.
     Otherwise, uses standard Mamba discretization.
 
-    Args
-    ----
-        d_model: Model dimension
-        d_state: SSM state dimension (N), default 16
-        d_conv: Convolution kernel size, default 4
-        expand: Expansion factor for inner dimension, default 2
-        dt_rank: Rank for delta projection, "auto" = ceil(d_model / 16)
-        dt_min: Minimum value for delta initialization
-        dt_max: Maximum value for delta initialization
-        dt_init: Initialization method ("random" or "constant")
-        dt_scale: Scale factor for dt initialization
-        dt_init_floor: Floor value for dt initialization
-        conv_bias: Whether to use bias in convolution
-        bias: Whether to use bias in linear projections
-        use_fast_path: Whether to use fused CUDA kernels
-        layer_idx: Layer index for multi-layer caching
-        device: Device for parameters
-        dtype: Data type for parameters
-        discretization: Discretization type
+    Example:
+        >>> model = Mamba(d_model=64, d_state=16, d_conv=4)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
 
-    Example
-    -------
-    >>> model = Mamba(d_model=64, d_state=16, d_conv=4)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Args:
+        d_model (int): Model dimension.
+        d_state (int, optional): SSM state dimension (N). Defaults to 16.
+        d_conv (int, optional): Convolution kernel size. Defaults to 4.
+        expand (int, optional): Expansion factor for inner dimension. Defaults to 2.
+        dt_rank (Union[int, str], optional): Rank for delta projection, "auto" = ceil(d_model / 16). Defaults to "auto".
+        dt_min (float, optional): Minimum value for delta initialization. Defaults to 0.001.
+        dt_max (float, optional): Maximum value for delta initialization. Defaults to 0.1.
+        dt_init (str, optional): Initialization method ("random" or "constant"). Defaults to "random".
+        dt_scale (float, optional): Scale factor for dt initialization. Defaults to 1.0.
+        dt_init_floor (float, optional): Floor value for dt initialization. Defaults to 1e-4.
+        conv_bias (bool, optional): Whether to use bias in convolution. Defaults to True.
+        bias (bool, optional): Whether to use bias in linear projections. Defaults to False.
+        use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
+        layer_idx (int, optional): Layer index for multi-layer caching. Defaults to None.
+        device (torch.device, optional): Device for parameters. Defaults to None.
+        dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+        discretization (str, optional): Discretization type. Defaults to "mamba".
     """
 
     def __init__(
@@ -186,22 +184,17 @@ class Mamba(LTV_LRNN):
         """
         Forward pass through Mamba.
 
-        Args
-        ----
-            hidden_states (Tensor): Input tensor, shape (B, L, D).
-
-            integration_timesteps (Tensor, optional): Time intervals between events.
-                Shape (B, L). When provided, uses asymmetric discretization with
-                separate dtA and dtB for event-driven processing.
-
-            lengths (Tensor, optional): Not used by Mamba currently.
-
+        Args:
+            hidden_states (torch.Tensor): Input tensor, shape ``(B, L, D)``.
+            integration_timesteps (torch.Tensor, optional): Time intervals between events.
+                Shape ``(B, L)``. When provided, uses asymmetric discretization with
+                separate dtA and dtB for event-driven processing. Defaults to None.
+            lengths (torch.Tensor, optional): Not used by Mamba currently. Defaults to None.
             inference_cache (dict, optional): Cache for autoregressive generation.
-                If provided, contains "conv_state" and "lrnn_state" tensors.
+                If provided, contains "conv_state" and "lrnn_state" tensors. Defaults to None.
 
-        Returns
-        -------
-            Tensor: Output tensor, shape (B, L, D).
+        Returns:
+            torch.Tensor: Output tensor, shape ``(B, L, D)``.
         """
         batch, seqlen, dim = hidden_states.shape
 
@@ -362,24 +355,21 @@ class Mamba(LTV_LRNN):
         """
         Performs a single recurrent step of Mamba.
 
-        Args
-        ----
-            x (Tensor): Input at current timestep, shape (B, 1, D).
-
+        Args:
+            x (torch.Tensor): Input at current timestep, shape ``(B, 1, D)``.
             inference_cache (Dict[str, Any]): Cache dictionary containing:
-                - "conv_state": Convolution state, shape (B, D_inner, d_conv)
-                - "lrnn_state": SSM state, shape (B, D_inner, N)
+                - "conv_state": Convolution state, shape ``(B, D_inner, d_conv)``
+                - "lrnn_state": SSM state, shape ``(B, D_inner, N)``
                 - "seqlen_offset": Current position in sequence
+            integration_timesteps (torch.Tensor, optional): Integration timestep,
+                shape ``(B, 1)`` or ``(B,)``. When provided, uses event-based
+                asymmetric discretization. Defaults to None.
+            **kwargs: Additional keyword arguments.
 
-            integration_timesteps (Tensor, optional): Integration timestep,
-                shape (B, 1) or (B,). When provided, uses event-based
-                asymmetric discretization.
-
-        Returns
-        -------
-            Tuple[Tensor, Dict]: A tuple containing:
-                - out (Tensor): Output at current timestep, shape (B, 1, D)
-                - inference_cache (Dict): Updated cache dictionary
+        Returns:
+            tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
+                - out (torch.Tensor): Output at current timestep, shape ``(B, 1, D)``.
+                - inference_cache (Dict[str, Any]): Updated cache dictionary.
         """
         conv_state = inference_cache["conv_state"]
         ssm_state = inference_cache["lrnn_state"]
@@ -505,23 +495,18 @@ class Mamba(LTV_LRNN):
         """
         Allocates cache for Mamba autoregressive inference.
 
-        Args
-        ----
+        Args:
             batch_size (int): The batch size for inference.
-
             max_seqlen (int): Maximum sequence length (not used by Mamba,
                 but kept for interface consistency).
-
-            dtype (torch.dtype, optional): Data type for allocated tensors.
-
+            dtype (torch.dtype, optional): Data type for allocated tensors. Defaults to None.
             **kwargs: Additional arguments (unused).
 
-        Returns
-        -------
+        Returns:
             Dict[str, Any]: Cache dictionary containing:
-                - "conv_state": Convolution state, shape (B, D_inner, d_conv)
-                - "lrnn_state": SSM state, shape (B, D_inner, N)
-                - "seqlen_offset": Current position in the sequence (starts at 0)
+                - "conv_state": Convolution state, shape ``(B, D_inner, d_conv)``.
+                - "lrnn_state": SSM state, shape ``(B, D_inner, N)``.
+                - "seqlen_offset": Current position in the sequence (starts at 0).
         """
         device = self.out_proj.weight.device
         conv_dtype = self.conv1d.weight.dtype if dtype is None else dtype

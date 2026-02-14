@@ -41,12 +41,17 @@ class RGLRUScanFn(torch.autograd.Function):
         return_last_state=False,
     ):
         """
+        Forward pass for the RG-LRU Scan CUDA kernel.
+
         Args:
-            u: Pre-gated input (batch, dim, seqlen) float32.
-            delta: Pre-computed exponent (batch, dim, seqlen) float32.
-            A: Learnable recurrence base in (0, 1),
-               shape (dim, dstate).
-            return_last_state: Whether to return the last hidden state.
+            ctx (Any): Autograd context.
+            u (torch.Tensor): Pre-gated input of shape ``(batch, dim, seqlen)`` in float32.
+            delta (torch.Tensor): Pre-computed exponent of shape ``(batch, dim, seqlen)`` in float32.
+            A (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim, dstate)``.
+            return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
+        
+        Returns:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor, and optionally the last state.
         """
         if not u.is_contiguous():
             u = u.contiguous()
@@ -133,14 +138,15 @@ def rglru_scan_fn(
     All inputs must already be in float32.
 
     Args:
-        u: Pre-gated input (batch, dim, seqlen).
-        delta: Pre-computed exponent (batch, dim, seqlen).
-        A: Learnable recurrence base in (0, 1), (dim, dstate).
-        return_last_state: Whether to return last hidden state.
+        u (torch.Tensor): Pre-gated input of shape ``(batch, dim, seqlen)``.
+        delta (torch.Tensor): Pre-computed exponent of shape ``(batch, dim, seqlen)``.
+        A (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim, dstate)``.
+        return_last_state (bool, optional): Whether to return last hidden state. Defaults to False.
 
     Returns:
-        out: Output (batch, dim, seqlen).
-        last_state: If *return_last_state*, (batch, dim, dstate).
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: 
+            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)``.
+            - last_state (torch.Tensor, optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     return RGLRUScanFn.apply(u, delta, A, return_last_state)
 
@@ -155,14 +161,15 @@ def rglru_scan_ref(
     Reference RG-LRU scan (pure PyTorch, sequential loop).
 
     Args:
-        u: Pre-gated input (batch, dim, seqlen) float32.
-        delta: Pre-computed exponent (batch, dim, seqlen) float32.
-        A: Learnable recurrence base in (0, 1), (dim, dstate) float32.
-        return_last_state: Whether to return last hidden state.
+        u (torch.Tensor): Pre-gated input of shape ``(batch, dim, seqlen)`` in float32.
+        delta (torch.Tensor): Pre-computed exponent of shape ``(batch, dim, seqlen)`` in float32.
+        A (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim, dstate)`` in float32.
+        return_last_state (bool, optional): Whether to return last hidden state. Defaults to False.
 
     Returns:
-        out: Output (batch, dim, seqlen).
-        last_state: If *return_last_state*, (batch, dim, dstate).
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)``.
+            - last_state (torch.Tensor, optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     dtype_in = u.dtype
     batch, dim, seqlen = u.shape
@@ -207,9 +214,7 @@ class RGLRUInnerFn(torch.autograd.Function):
     """
     RG-LRU inner function: conv1d + gate projections + gating + scan + output.
 
-    Performs
-    --------
-
+    Performs:
         x              = causal_conv1d(x_pre_conv)
         recurrent_gate = sigmoid(x @ W_r^T + b_r)
         input_gate     = sigmoid(x @ W_i^T + b_i)
@@ -237,20 +242,25 @@ class RGLRUInnerFn(torch.autograd.Function):
         c=8.0,
     ):
         """
+        Forward pass for the RG-LRU inner function.
+
         Args:
-            x: Input before conv (batch, dim, seqlen).
-            conv1d_weight: Conv1d weight (dim, 1, kernel_size).
-            conv1d_bias: Conv1d bias (dim,) or None.
-            a: Learnable recurrence base in (0, 1),
-               (dim,) or (dim, dstate).
-            recurrent_gate_weight: (dim, dim).
-            recurrent_gate_bias: (dim,).
-            input_gate_weight: (dim, dim).
-            input_gate_bias: (dim,).
-            out_proj_weight: (d_model, dim).
-            out_proj_bias: (d_model,) or None.
-            gate: Stream-1 gate (batch, seqlen, dim).
-            c: Fixed scalar constant (default 8).
+            ctx (Any): Autograd context.
+            x (torch.Tensor): Input before conv of shape ``(batch, dim, seqlen)``.
+            conv1d_weight (torch.Tensor): Conv1d weight of shape ``(dim, 1, kernel_size)``.
+            conv1d_bias (torch.Tensor | None): Conv1d bias of shape ``(dim,)`` or None.
+            a (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim,)`` or ``(dim, dstate)``.
+            recurrent_gate_weight (torch.Tensor): Recurrent gate weight of shape ``(dim, dim)``.
+            recurrent_gate_bias (torch.Tensor): Recurrent gate bias of shape ``(dim,)``.
+            input_gate_weight (torch.Tensor): Input gate weight of shape ``(dim, dim)``.
+            input_gate_bias (torch.Tensor): Input gate bias of shape ``(dim,)``.
+            out_proj_weight (torch.Tensor): Output projection weight of shape ``(d_model, dim)``.
+            out_proj_bias (torch.Tensor | None): Output projection bias of shape ``(d_model,)`` or None.
+            gate (torch.Tensor): Stream-1 gate of shape ``(batch, seqlen, dim)``.
+            c (float, optional): Fixed scalar constant. Defaults to 8.0.
+
+        Returns:
+            torch.Tensor: The projected output tensor.
         """
         assert (
             causal_conv1d_fn is not None
@@ -541,22 +551,21 @@ def rglru_inner_fn(
         out            = (gate x y) @ W_out^T + b_out
 
     Args:
-        x: Input before conv (batch, dim, seqlen).
-        conv1d_weight: Conv1d weight (dim, 1, kernel_size).
-        conv1d_bias: Conv1d bias (dim,) or None.
-        a: Learnable recurrence base in (0, 1),
-           (dim,) or (dim, dstate).
-        recurrent_gate_weight: (dim, dim).
-        recurrent_gate_bias: (dim,).
-        input_gate_weight: (dim, dim).
-        input_gate_bias: (dim,).
-        out_proj_weight: (d_model, dim).
-        out_proj_bias: (d_model,) or None.
-        gate: Stream-1 gate (batch, seqlen, dim).
-        c: Fixed scalar constant (default 8).
+        x (torch.Tensor): Input before conv, shape ``(batch, dim, seqlen)``.
+        conv1d_weight (torch.Tensor): Conv1d weight, shape ``(dim, 1, kernel_size)``.
+        conv1d_bias (torch.Tensor | None): Conv1d bias, shape ``(dim,)`` or None.
+        a (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim,)`` or ``(dim, dstate)``.
+        recurrent_gate_weight (torch.Tensor): Recurrent gate weight, shape ``(dim, dim)``.
+        recurrent_gate_bias (torch.Tensor): Recurrent gate bias, shape ``(dim,)``.
+        input_gate_weight (torch.Tensor): Input gate weight, shape ``(dim, dim)``.
+        input_gate_bias (torch.Tensor): Input gate bias, shape ``(dim,)``.
+        out_proj_weight (torch.Tensor): Output projection weight, shape ``(d_model, dim)``.
+        out_proj_bias (torch.Tensor | None): Output projection bias, shape ``(d_model,)`` or None.
+        gate (torch.Tensor): Stream-1 gate, shape ``(batch, seqlen, dim)``.
+        c (float, optional): Fixed scalar constant. Defaults to 8.0.
 
     Returns:
-        out: Output (batch, seqlen, d_model).
+        torch.Tensor: Output tensor of shape ``(batch, seqlen, d_model)``.
     """
     return RGLRUInnerFn.apply(
         x,
@@ -591,32 +600,32 @@ def rglru_inner_ref(
     """
     Reference RG-LRU inner function (pure PyTorch).
 
-    Computes
-    --------
+    Computes:
         x_conv         = conv1d(x)[..., :L]
         recurrent_gate = sigmoid(x_conv @ W_r^T + b_r)
         input_gate     = sigmoid(x_conv @ W_i^T + b_i)
-        gate_t   = c x recurrent_gate_t
-        A_bar_t  = a ** gate_t
-        h_t      = A_bar_t x h_{t-1} + sqrt(1 - A_bar_t**2) x (input_gate_t x u_t)
-        y_t      = sum_n h_n,t
-        out      = (gate x y) @ W_out^T + b_out
+        gate_t         = c x recurrent_gate_t
+        A_bar_t        = a ** gate_t
+        h_t            = A_bar_t x h_{t-1} + sqrt(1 - A_bar_t**2) x (input_gate_t x u_t)
+        y_t            = sum_n h_n,t
+        out            = (gate x y) @ W_out^T + b_out
 
-    Args
-    ----
-        x: Input before conv (batch, dim, seqlen).
-        conv1d_weight: Conv1d weight (dim, 1, kernel_size).
-        conv1d_bias: Conv1d bias (dim,) or None.
-        a: Learnable recurrence base in (0, 1),
-           (dim,) or (dim, dstate).
-        recurrent_gate_weight: (dim, dim).
-        recurrent_gate_bias: (dim,).
-        input_gate_weight: (dim, dim).
-        input_gate_bias: (dim,).
-        out_proj_weight: (d_model, dim).
-        out_proj_bias: (d_model,) or None.
-        gate: Stream-1 gate (batch, seqlen, dim).
-        c: Fixed scalar constant (default 8).
+    Args:
+        x (torch.Tensor): Input before conv, shape ``(batch, dim, seqlen)``.
+        conv1d_weight (torch.Tensor): Conv1d weight, shape ``(dim, 1, kernel_size)``.
+        conv1d_bias (torch.Tensor | None): Conv1d bias, shape ``(dim,)`` or None.
+        a (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim,)`` or ``(dim, dstate)``.
+        recurrent_gate_weight (torch.Tensor): Recurrent gate weight, shape ``(dim, dim)``.
+        recurrent_gate_bias (torch.Tensor): Recurrent gate bias, shape ``(dim,)``.
+        input_gate_weight (torch.Tensor): Input gate weight, shape ``(dim, dim)``.
+        input_gate_bias (torch.Tensor): Input gate bias, shape ``(dim,)``.
+        out_proj_weight (torch.Tensor): Output projection weight, shape ``(d_model, dim)``.
+        out_proj_bias (torch.Tensor | None): Output projection bias, shape ``(d_model,)`` or None.
+        gate (torch.Tensor): Stream-1 gate, shape ``(batch, seqlen, dim)``.
+        c (float, optional): Fixed scalar constant. Defaults to 8.0.
+        
+    Returns:
+        torch.Tensor: Output tensor of shape ``(batch, seqlen, d_model)``.
     """
     dtype_in = x.dtype
     L = x.shape[-1]

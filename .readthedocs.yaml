@@ -5,7 +5,7 @@ build:
   tools:
     python: "3.11"
   commands:
-    
+    - pip install sphinx sphinx-rtd-theme
     - sphinx-apidoc -f -o docs/source/ lrnnx/ lrnnx/*/tests*
     
     - sphinx-build -b html docs/source $READTHEDOCS_OUTPUT/html
