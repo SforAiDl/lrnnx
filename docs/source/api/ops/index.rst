@@ -1,12 +1,14 @@
-Ops
-====
-
-Low-level CUDA operations and kernels.
+Operations
+==========
 
 .. toctree::
    :maxdepth: 2
 
-   lrnnx.ops
-
-.. automodule:: lrnnx.ops
-   :members:
+   lrnnx.ops.rglru_scan
+   lrnnx.ops.s4_kernel_interface
+   lrnnx.ops.s4_utils
+   lrnnx.ops.s7_scan
+   lrnnx.ops.selective_scan
+   lrnnx.ops.simplified_scan
+   lrnnx.ops.torch
+   lrnnx.ops.triton

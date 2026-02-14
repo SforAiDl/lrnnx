@@ -1,12 +1,8 @@
-Utils
-====
-
-Helper functions and utilities.
+Utilities
+=========
 
 .. toctree::
    :maxdepth: 2
 
-   lrnnx.utils
-
-.. automodule:: lrnnx.utils
-   :members:
+   lrnnx.utils.generation
+   lrnnx.utils.init
