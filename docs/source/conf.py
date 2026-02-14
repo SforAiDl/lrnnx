@@ -15,12 +15,13 @@ autodoc_mock_imports = [
     'torch.utils.checkpoint',
     'numpy',
     'einops',
+    "flash_attn",
     'causal_conv1d',
     'mamba_ssm',
     'triton',
     'opt_einsum',
     "selective_scan_cuda",
-    "lrnnx.ops.triton"
+    "simplified_scan_cuda"
 ]
 
 
@@ -28,7 +29,7 @@ autodoc_mock_imports = [
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'lrnnx'
-copyright = '2026, Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
+copyright = '2026, SforAiDl'
 author = 'Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
 release = '1.0.0'
 
@@ -46,7 +47,7 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 
@@ -68,9 +69,14 @@ autodoc_default_options = {
 autosummary_generate = True
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+napoleon_include_init_with_doc = True
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
 
 # Intersphinx mapping
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'torch': ('https://pytorch.org/docs/stable/', None),
 }
+
+suppress_warnings = ['ref.python']
