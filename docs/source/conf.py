@@ -14,7 +14,7 @@ autodoc_mock_imports = [
     'torch.distributed', 'numpy', 'scipy', 'einops',
     'causal_conv1d', 'mamba_ssm', 'selective_scan_cuda',
     'triton', 'triton.language', 'opt_einsum', 'pscan',
-    'flash_attn', 'cuda', 'cupy',
+    'flash_attn', 'cuda', 'cupy','simplified_scan_cuda'
 ]
 
 # -- Project information --
