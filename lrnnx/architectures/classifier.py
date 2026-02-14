@@ -276,9 +276,12 @@ class ClassifierBlock(nn.Module):
 
 class Classifier(nn.Module):
     """
-    Classifier: Sequence classifier or regressor using stacked Linear RNN blocks.
+    Classifier: Sequence classifier or regressor...
 
-    Supports both classification and regression tasks on sequential data.
+    Args:
+        input_dim (int): Number of input features.
+        num_classes (int): Number of output classes.
+        d_model (int): Hidden dimension of the model.
     """
 
     def __init__(
