@@ -94,7 +94,7 @@ def dirac(
 def async_(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, Tensor]:
-    """
+    r"""
     Asynchronous discretization method, introduced in https://arxiv.org/abs/2404.18508.
     This helps provide a strong inductive bias for asynchronous event-streams.
 

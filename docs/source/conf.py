@@ -3,7 +3,7 @@
 
 import os
 import sys
-
+import re
 # Add project root to Python path
 sys.path.insert(0, os.path.abspath('../..'))
 
@@ -95,3 +95,63 @@ intersphinx_mapping = {
 
 # Remove module names for cleaner display
 add_module_names = False
+
+def autodoc_process_signature(app, what, name, obj, options, signature, return_annotation):
+    """Remove *args and **kwargs (and variants like **mixer_kwargs) from autodoc signatures."""
+    if signature:
+        # Remove **kwargs, **mixer_kwargs, **layer_args, etc. (with optional type annotation)
+        signature = re.sub(r',?\s*\*\*\w+', '', signature)
+        # Remove *args (with optional type annotation)
+        signature = re.sub(r',?\s*\*args\b[^,)]*', '', signature)
+        # Clean up leftover formatting
+        signature = re.sub(r'\(\s*,', '(', signature)
+        signature = re.sub(r',\s*\)', ')', signature)
+    return signature, return_annotation
+
+
+def autodoc_process_docstring(app, what, name, obj, options, lines):
+    """Remove *args/**kwargs entries from docstring parameter lists (all formats)."""
+    indices_to_remove = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # Pattern for RST-style directives (with or without * escaping):
+        #   :param \*\*kwargs: ...  /  :param \*\*mixer_kwargs: ...  /  :param \*\*layer_args: ...
+        #   :param kwargs: ...  /  :param mixer_kwargs: ...
+        #   :type \*\*kwargs: ...  /  :type kwargs: ...
+        #   :keyword kwargs: ...
+        is_param_line = bool(re.match(
+            r'^:(param|type|keyword)\s+(\\?\*\\?\*\s*\w+|(\w*kwargs|args))\s*:', stripped
+        ))
+
+        # Pattern for Google/NumPy style:
+        #   **kwargs: ...  /  *args: ...  /  **mixer_kwargs: ...  /  **layer_args: ...
+        is_raw_line = bool(re.match(
+            r'^\*{1,2}\w+\s*[\(:]', stripped
+        ))
+
+        if is_param_line or is_raw_line:
+            indices_to_remove.append(i)
+            # Also remove continuation lines (indented, no new directive)
+            j = i + 1
+            while j < len(lines):
+                next_line = lines[j]
+                if not next_line.strip():
+                    break
+                if re.match(r'^:', next_line.strip()) or not next_line[0:1].isspace():
+                    break
+                indices_to_remove.append(j)
+                j += 1
+            i = j
+        else:
+            i += 1
+
+    for idx in reversed(indices_to_remove):
+        del lines[idx]
+
+
+def setup(app):
+    app.connect('autodoc-process-signature', autodoc_process_signature)
+    app.connect('autodoc-process-docstring', autodoc_process_docstring)
