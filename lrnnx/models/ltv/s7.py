@@ -31,15 +31,6 @@ class S7(LTV_LRNN):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): Model dimension.
-        d_state (int): State dimension. Must be divisible by J.
-        J (int, optional): Number of blocks for initialization. Defaults to 1.
-        use_fast_path (bool, optional): Whether to use the CUDA fast path if available. Defaults to True.
-        layer_idx (int, optional): Layer index for multi-layer models, used for caching. Defaults to None.
-        device (torch.device, optional): Device for the model parameters. Defaults to None.
-        dtype (torch.dtype, optional): Data type for the model parameters. Defaults to None.
     """
 
     def __init__(
@@ -52,6 +43,20 @@ class S7(LTV_LRNN):
         device=None,
         dtype=None,
     ):
+        """
+        Initialize S7 model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension. Must be divisible by J.
+            J (int, optional): Number of blocks for initialization. Defaults to 1.
+            use_fast_path (bool, optional): Whether to use the CUDA fast path if available.
+                Defaults to True.
+            layer_idx (int, optional): Layer index for multi-layer models, used for caching.
+                Defaults to None.
+            device (torch.device, optional): Device for the model parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for the model parameters. Defaults to None.
+        """
         super().__init__(discretization="no_discretization")
         factory_kwargs = {"device": device, "dtype": dtype}
         self.d_model = d_model

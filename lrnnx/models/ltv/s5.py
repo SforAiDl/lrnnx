@@ -38,18 +38,6 @@ class S5(LTV_LRNN):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): Model dimension.
-        d_state (int): State dimension.
-        discretization (Literal["bilinear", "zoh", "dirac"], optional): Discretization method. Defaults to "zoh".
-        conj_sym (bool, optional): If True, uses conjugate symmetry for the state space model. Defaults to False.
-        dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
-        dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
-        step_rescale (float, optional): Rescale factor for step size. Defaults to 1.0.
-        use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
-        device (torch.device, optional): Device for parameters. Defaults to None.
-        dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
     """
 
     def __init__(
@@ -65,6 +53,23 @@ class S5(LTV_LRNN):
         device=None,
         dtype=None,
     ):
+        """
+        Initialize S5 model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension.
+            discretization (Literal["bilinear", "zoh", "dirac"], optional):
+                Discretization method. Defaults to ``"zoh"``.
+            conj_sym (bool, optional): If True, uses conjugate symmetry for the
+                state space model. Defaults to False.
+            dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
+            dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
+            step_rescale (float, optional): Rescale factor for step size. Defaults to 1.0.
+            use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
+            device (torch.device, optional): Device for parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+        """
         super().__init__(discretization=discretization)
 
         self.d_model = d_model

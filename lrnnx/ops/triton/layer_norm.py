@@ -56,7 +56,7 @@ def layer_norm_ref(
         upcast (bool, optional): Whether to cast inputs to float32 before computation. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple: The normalized output. If ``prenorm=True`` or ``weight1`` is provided, returns a tuple.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The normalized output. If ``prenorm=True`` or ``weight1`` is provided, returns a tuple.
     """
     dtype = x.dtype
     if upcast:
@@ -139,7 +139,7 @@ def rms_norm_ref(
         upcast (bool, optional): Whether to cast inputs to float32 before computation. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple: The normalized output. If ``prenorm=True`` or ``weight1`` is provided, returns a tuple.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The normalized output. If ``prenorm=True`` or ``weight1`` is provided, returns a tuple.
     """
     dtype = x.dtype
     if upcast:
@@ -909,7 +909,7 @@ class LayerNormFn(torch.autograd.Function):
             return_dropout_mask (bool, optional): If True, returns the generated dropout masks. Defaults to False.
 
         Returns:
-            torch.Tensor | tuple: Normalized output, optionally along with residual, y1, and dropout masks.
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Normalized output, optionally along with residual, y1, and dropout masks.
         """
         x_shape_og = x.shape
         # reshape input data into 2D tensor
@@ -1125,7 +1125,7 @@ def layer_norm_fn(
         return_dropout_mask (bool, optional): If True, returns generated dropout masks. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple: The normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
     """
     return LayerNormFn.apply(
         x,
@@ -1179,7 +1179,7 @@ def rms_norm_fn(
         return_dropout_mask (bool, optional): If True, returns generated dropout masks. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple: The RMS normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The RMS normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
     """
     return LayerNormFn.apply(
         x,
@@ -1242,7 +1242,7 @@ class RMSNorm(torch.nn.Module):
             residual_in_fp32 (bool, optional): Compute residual in float32. Defaults to False.
 
         Returns:
-            torch.Tensor | tuple: Normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: Normalized output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
         """
         return rms_norm_fn(
             x,
@@ -1294,7 +1294,7 @@ class LayerNormLinearFn(torch.autograd.Function):
             is_rms_norm (bool, optional): If True, uses RMS norm instead of Layer norm. Defaults to False.
 
         Returns:
-            torch.Tensor | tuple: The projected output, optionally along with the prenorm residual state.
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The projected output, optionally along with the prenorm residual state.
         """
         x_shape_og = x.shape
         # reshape input data into 2D tensor
@@ -1442,7 +1442,7 @@ def layer_norm_linear_fn(
         is_rms_norm (bool, optional): If True, computes RMS norm instead of Layer norm. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple: The projected output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The projected output. If ``prenorm=True``, returns ``(out, prenorm_state)``.
     """
     return LayerNormLinearFn.apply(
         x,

@@ -16,15 +16,18 @@ from lrnnx.models.lti.base import LTI_LRNN
 
 class LRU(LTI_LRNN):
     """
-    Initialize LRU layer.
+    Linear Recurrent Unit (LRU) layer.
 
-    Args:
-        d_model (int): Model dimension.
-        d_state (int): State dimension.
-        r_min (float, optional): Minimum radius for Lambda initialization. Defaults to 0.
-        r_max (float, optional): Maximum radius for Lambda initialization. Defaults to 1.
-        max_phase (float, optional): Maximum phase for Lambda initialization. Defaults to 2 * math.pi.
+    Paper: https://arxiv.org/abs/2303.06349
+
+    Example:
+        >>> model = LRU(d_model=64, d_state=64)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
+
     def __init__(
         self,
         d_model: int,
@@ -33,6 +36,17 @@ class LRU(LTI_LRNN):
         r_max: float = 1,
         max_phase: float = 2 * math.pi,
     ) -> None:
+        """
+        Initialize LRU layer.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension.
+            r_min (float, optional): Minimum radius for Lambda initialization. Defaults to 0.
+            r_max (float, optional): Maximum radius for Lambda initialization. Defaults to 1.
+            max_phase (float, optional): Maximum phase for Lambda initialization.
+                Defaults to ``2 * math.pi``.
+        """
         super().__init__(
             discretization="no_discretization"
         )  # discretization is unused in LRU

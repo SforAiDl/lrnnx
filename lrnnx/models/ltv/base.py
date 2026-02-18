@@ -35,11 +35,6 @@ class LTV_LRNN(LRNN):
         >>> my_lrnn = LTV_LRNN("zoh")
         >>> # create dummy input tensor and perform forward pass
         >>> # in subclass
-
-    Args:
-        discretization (Literal["zoh", "bilinear", "dirac", "async", "no_discretization"] | None): Discretization method to use.
-            Can be one of "zoh", "bilinear", "dirac", "async", "no_discretization", or None for models that handle discretization internally.
-            Other parameters can be passed to the subclass.
     """
 
     def __init__(
@@ -48,6 +43,15 @@ class LTV_LRNN(LRNN):
             Literal["zoh", "bilinear", "dirac", "async", "no_discretization"]
         ],
     ):
+        """
+        Initialize the LTV LRNN base class.
+
+        Args:
+            discretization (Literal["zoh", "bilinear", "dirac", "async", "no_discretization"] | None):
+                Discretization method to use. Can be one of ``"zoh"``, ``"bilinear"``,
+                ``"dirac"``, ``"async"``, ``"no_discretization"``, or ``None`` for models
+                that handle discretization internally.
+        """
         super().__init__(discretization=discretization)
 
     @abstractmethod

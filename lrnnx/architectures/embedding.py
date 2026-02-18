@@ -10,10 +10,9 @@ class PositionEmbedding(nn.Module):
     """
     Learned positional embeddings (position indices -> vectors).
 
-    :param max_position_embeddings: Maximum sequence length supported.
-    :type max_position_embeddings: int
-    :param embedding_dim: Dimension of the embedding vectors.
-    :type embedding_dim: int
+    Args:
+        max_position_embeddings (int): Maximum sequence length supported.
+        embedding_dim (int): Dimension of the embedding vectors.
     """
 
     def __init__(self, max_position_embeddings: int, embedding_dim: int):
@@ -26,10 +25,11 @@ class PositionEmbedding(nn.Module):
         """
         Forward pass for positional embeddings.
 
-        :param positions: Tensor of position indices.
-        :type positions: torch.Tensor
-        :return: Positional embeddings.
-        :rtype: torch.Tensor
+        Args:
+            positions (torch.Tensor): Tensor of position indices.
+
+        Returns:
+            torch.Tensor: Positional embeddings.
         """
         return self.position_embedding(positions)
 
@@ -41,20 +41,15 @@ class TokenEmbedding(nn.Module):
     By default this returns token lookups only. Enable learned positional
     embeddings with `use_position=True` and providing `max_position_embeddings`.
 
-    :param vocab_size: Size of the vocabulary.
-    :type vocab_size: int
-    :param embedding_dim: Dimension of the embedding vectors.
-    :type embedding_dim: int
-    :param padding_idx: Index for padding tokens. Defaults to None.
-    :type padding_idx: int, optional
-    :param max_position_embeddings: Max sequence length for positional 
-        embeddings. Required if `use_position=True`. Defaults to None.
-    :type max_position_embeddings: int, optional
-    :param use_position: Whether to include learned positional 
-        embeddings. Defaults to False.
-    :type use_position: bool, optional
-    :param dropout: Dropout probability. Defaults to 0.1.
-    :type dropout: float, optional
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        embedding_dim (int): Dimension of the embedding vectors.
+        padding_idx (int, optional): Index for padding tokens. Defaults to None.
+        max_position_embeddings (int, optional): Max sequence length for positional
+            embeddings. Required if ``use_position=True``. Defaults to None.
+        use_position (bool, optional): Whether to include learned positional
+            embeddings. Defaults to False.
+        dropout (float, optional): Dropout probability. Defaults to 0.1.
     """
 
     def __init__(
@@ -89,10 +84,11 @@ class TokenEmbedding(nn.Module):
         """
         Convert token IDs to embeddings.
 
-        :param token_ids: Tensor of token IDs of shape `(batch_size, seq_len)`.
-        :type token_ids: torch.Tensor
-        :return: Embedded tokens of shape `(batch_size, seq_len, embedding_dim)`.
-        :rtype: torch.Tensor
+        Args:
+            token_ids (torch.Tensor): Tensor of token IDs of shape ``(batch_size, seq_len)``.
+
+        Returns:
+            torch.Tensor: Embedded tokens of shape ``(batch_size, seq_len, embedding_dim)``.
         """
         embeddings = self.token_embedding(token_ids)
 

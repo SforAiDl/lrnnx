@@ -37,35 +37,6 @@ class S4(LTI_LRNN):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 1024, 64])
-
-    Args:
-        d_model (int): Model dimension.
-        bottleneck (int, optional): Reduce dimension of inner layer (e.g. used in GSS). Defaults to None.
-        gate (int, optional): Add multiplicative gating (e.g. used in GSS), which is essentially a multiplicative instead of additive residual branch. Defaults to None.
-        final_act (str, optional): Activation function to apply after final linear layer. 'id' for no activation, None for no linear layer at all. Defaults to "glu".
-        postact (str, optional): Deprecated, use final_act. Defaults to None.
-        dropout (float, optional): Standard dropout argument. Defaults to 0.0.
-        tie_dropout (bool, optional): If True, ties the dropout mask across the sequence length, emulating nn.Dropout1d. Defaults to False.
-        transposed (bool, optional): Choose backbone axis ordering of ``(B, L, H)`` (if False) or ``(B, H, L)`` (if True). Defaults to True.
-        l_max (int, optional): Maximum sequence length for the kernel. Defaults to None.
-        channels (int, optional): Number of channels/heads. Defaults to 1.
-        d_state (int, optional): State dimension (N). Defaults to 64.
-        dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
-        dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
-        dt_tie (bool, optional): Tie dt across channels. Defaults to True.
-        dt_transform (str, optional): Transformation to apply to dt. Defaults to "exp".
-        dt_fast (bool, optional): Fast dt initialization. Defaults to False.
-        rank (int, optional): Rank of the low-rank correction for DPLR. Defaults to 1.
-        n_ssm (int, optional): Number of independent SSMs. Defaults to None.
-        init (str, optional): Initialization method for the A matrix (e.g., "legs"). Defaults to "legs".
-        deterministic (bool, optional): Use deterministic initialization. Defaults to False.
-        real_transform (str, optional): Transformation for the real part of A. Defaults to "exp".
-        imag_transform (str, optional): Transformation for the imaginary part of A. Defaults to "none".
-        is_real (bool, optional): Whether to use real-valued SSMs. Defaults to False.
-        lr (float, optional): Specific learning rate for SSM parameters. Defaults to None.
-        wd (float, optional): Specific weight decay for SSM parameters. Defaults to 0.0.
-        verbose (bool, optional): Print initialization information. Defaults to True.
-        **layer_args: Any remaining args passed directly to FFTConv.
     """
 
     def __init__(
@@ -99,6 +70,41 @@ class S4(LTI_LRNN):
         verbose=True,
         **layer_args,  # Any remaining args for FFTConv
     ):
+        """
+        Initialize S4 block.
+
+        Args:
+            d_model (int): Model dimension.
+            bottleneck (int, optional): Reduce dimension of inner layer (e.g. used in GSS). Defaults to None.
+            gate (int, optional): Add multiplicative gating (e.g. used in GSS). Defaults to None.
+            final_act (str, optional): Activation after final linear layer. ``'id'`` for no
+                activation, ``None`` for no linear layer at all. Defaults to ``"glu"``.
+            postact (str, optional): Deprecated, use *final_act*. Defaults to None.
+            dropout (float, optional): Standard dropout argument. Defaults to 0.0.
+            tie_dropout (bool, optional): Tie dropout mask across sequence length,
+                emulating ``nn.Dropout1d``. Defaults to False.
+            transposed (bool, optional): Backbone axis ordering ``(B, L, H)`` (False)
+                or ``(B, H, L)`` (True). Defaults to True.
+            l_max (int, optional): Maximum sequence length for the kernel. Defaults to None.
+            channels (int, optional): Number of channels/heads. Defaults to 1.
+            d_state (int, optional): State dimension (N). Defaults to 64.
+            dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
+            dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
+            dt_tie (bool, optional): Tie dt across channels. Defaults to True.
+            dt_transform (str, optional): Transformation to apply to dt. Defaults to ``"exp"``.
+            dt_fast (bool, optional): Fast dt initialization. Defaults to False.
+            rank (int, optional): Rank of the low-rank correction for DPLR. Defaults to 1.
+            n_ssm (int, optional): Number of independent SSMs. Defaults to None.
+            init (str, optional): Initialization method for the A matrix (e.g., ``"legs"``). Defaults to ``"legs"``.
+            deterministic (bool, optional): Use deterministic initialization. Defaults to False.
+            real_transform (str, optional): Transformation for the real part of A. Defaults to ``"exp"``.
+            imag_transform (str, optional): Transformation for the imaginary part of A. Defaults to ``"none"``.
+            is_real (bool, optional): Whether to use real-valued SSMs. Defaults to False.
+            lr (float, optional): Specific learning rate for SSM parameters. Defaults to None.
+            wd (float, optional): Specific weight decay for SSM parameters. Defaults to 0.0.
+            verbose (bool, optional): Print initialization information. Defaults to True.
+            **layer_args: Any remaining args passed directly to FFTConv.
+        """
         super().__init__(
             discretization="no_discretization"
         )  # discretization is unused in S4

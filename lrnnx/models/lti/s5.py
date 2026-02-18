@@ -21,11 +21,12 @@ class S5(LTI_LRNN):
     Basic S5 State Space Model.
     Reference: https://openreview.net/forum?id=Ai8Hw3AXqks
 
-    Args:
-        d_model (int): Model dimension.
-        d_state (int): State dimension (P in the original paper).
-        discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]): Discretization method to use.
-        conj_sym (bool, optional): If True, uses conjugate symmetry for the state space model. Defaults to False.
+    Example:
+        >>> model = S5(d_model=64, d_state=64, discretization="zoh")
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def __init__(
@@ -40,6 +41,17 @@ class S5(LTI_LRNN):
         ],
         conj_sym: bool = False,  # if True, uses conjugate symmetry for the state space model.
     ):
+        """
+        Initialize S5 model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension (P in the original paper).
+            discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]):
+                Discretization method to use.
+            conj_sym (bool, optional): If True, uses conjugate symmetry for the
+                state space model. Defaults to False.
+        """
         super().__init__(discretization=discretization)
 
         self.d_model = d_model

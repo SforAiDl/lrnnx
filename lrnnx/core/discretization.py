@@ -26,9 +26,9 @@ def zoh(
         integration_timesteps (torch.Tensor, optional): Not used in ZOH discretization. Defaults to None.
 
     Returns:
-        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - A_bar (torch.Tensor): The discretized system matrix.
-            - gamma_bar (torch.Tensor): The input normalizer.
+        A tuple containing:
+            - torch.Tensor: A_bar (torch.Tensor): The discretized system matrix.
+            - torch.Tensor: gamma_bar (torch.Tensor): The input normalizer.
     """
     Identity = torch.ones(A.shape[0], device=A.device)
     A_bar = torch.exp(delta * A)
@@ -54,9 +54,9 @@ def bilinear(
         integration_timesteps (torch.Tensor, optional): Not used in bilinear discretization. Defaults to None.
 
     Returns:
-        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - A_bar (torch.Tensor): The discretized system matrix.
-            - gamma_bar (torch.Tensor): The input normalizer.
+        A tuple containing:
+            - torch.Tensor: A_bar : The discretized system matrix.
+            - torch.Tensor: gamma_bar : The input normalizer.
     """
     Identity = torch.ones(A.shape[0], device=A.device)
     A_bar = (1 / (Identity + 0.5 * delta * A)) * (Identity - 0.5 * delta * A)
@@ -82,9 +82,9 @@ def dirac(
         integration_timesteps (torch.Tensor, optional): Not used in dirac discretization. Defaults to None.
 
     Returns:
-        tuple[torch.Tensor, float]: A tuple containing:
-            - A_bar (torch.Tensor): The discretized system matrix.
-            - gamma_bar (float): The input normalizer (1.0).
+        A tuple containing:
+            - torch.Tensor: A_bar : The discretized system matrix.
+            - float: gamma_bar : The input normalizer (1.0).
     """
     A_bar = torch.exp(delta * A)
     gamma_bar = 1.0
@@ -111,9 +111,9 @@ def async_(
         integration_timesteps (torch.Tensor): Timesteps for async discretization, ideally of shape (B, L), i.e., difference in timesteps of events.
 
     Returns:
-        tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-            - A_bar (torch.Tensor): The discretized system matrix.
-            - gamma_bar (torch.Tensor): The input normalizer.
+        A tuple containing:
+            - torch.Tensor: A_bar : The discretized system matrix.
+            - torch.Tensor: gamma_bar : The input normalizer.
     """
     assert (
         integration_timesteps is not None
@@ -141,9 +141,9 @@ def no_discretization(
         integration_timesteps (torch.Tensor, optional): Not used in no_discretization. Defaults to None.
 
     Returns:
-        tuple[torch.Tensor, float]: A tuple containing:
-            - A_bar (torch.Tensor): Same as A.
-            - gamma_bar (float): 1.0, as B_bar = B.
+        A tuple containing:
+            - torch.Tensor: A_bar : Same as A.
+            - float: gamma_bar : 1.0, as B_bar = B.
     """
     return A, 1.0
 

@@ -40,25 +40,6 @@ class Mamba(LTV_LRNN):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): Model dimension.
-        d_state (int, optional): SSM state dimension (N). Defaults to 16.
-        d_conv (int, optional): Convolution kernel size. Defaults to 4.
-        expand (int, optional): Expansion factor for inner dimension. Defaults to 2.
-        dt_rank (Union[int, str], optional): Rank for delta projection, "auto" = ceil(d_model / 16). Defaults to "auto".
-        dt_min (float, optional): Minimum value for delta initialization. Defaults to 0.001.
-        dt_max (float, optional): Maximum value for delta initialization. Defaults to 0.1.
-        dt_init (str, optional): Initialization method ("random" or "constant"). Defaults to "random".
-        dt_scale (float, optional): Scale factor for dt initialization. Defaults to 1.0.
-        dt_init_floor (float, optional): Floor value for dt initialization. Defaults to 1e-4.
-        conv_bias (bool, optional): Whether to use bias in convolution. Defaults to True.
-        bias (bool, optional): Whether to use bias in linear projections. Defaults to False.
-        use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
-        layer_idx (int, optional): Layer index for multi-layer caching. Defaults to None.
-        device (torch.device, optional): Device for parameters. Defaults to None.
-        dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
-        discretization (str, optional): Discretization type. Defaults to "mamba".
     """
 
     def __init__(
@@ -81,6 +62,29 @@ class Mamba(LTV_LRNN):
         dtype=None,
         discretization="mamba",
     ):
+        """
+        Initialize Mamba model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int, optional): SSM state dimension (N). Defaults to 16.
+            d_conv (int, optional): Convolution kernel size. Defaults to 4.
+            expand (int, optional): Expansion factor for inner dimension. Defaults to 2.
+            dt_rank (Union[int, str], optional): Rank for delta projection,
+                ``"auto"`` = ``ceil(d_model / 16)``. Defaults to ``"auto"``.
+            dt_min (float, optional): Minimum value for delta initialization. Defaults to 0.001.
+            dt_max (float, optional): Maximum value for delta initialization. Defaults to 0.1.
+            dt_init (str, optional): Initialization method (``"random"`` or ``"constant"``). Defaults to ``"random"``.
+            dt_scale (float, optional): Scale factor for dt initialization. Defaults to 1.0.
+            dt_init_floor (float, optional): Floor value for dt initialization. Defaults to 1e-4.
+            conv_bias (bool, optional): Whether to use bias in convolution. Defaults to True.
+            bias (bool, optional): Whether to use bias in linear projections. Defaults to False.
+            use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
+            layer_idx (int, optional): Layer index for multi-layer caching. Defaults to None.
+            device (torch.device, optional): Device for parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+            discretization (str, optional): Discretization type. Defaults to ``"mamba"``.
+        """
         # pass None to base class since Mamba handles discretization via CUDA kernel, not discretize_fn
         super().__init__(discretization=None)
         factory_kwargs = {"device": device, "dtype": dtype}

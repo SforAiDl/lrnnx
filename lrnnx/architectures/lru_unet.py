@@ -1,8 +1,9 @@
-from typing import List
+"""Linear Recurrent Unit (LRU) based U-Net for sequence tasks."""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import List
 
 from lrnnx.models.lti.lru import LRU
 
@@ -10,9 +11,9 @@ from lrnnx.models.lti.lru import LRU
 class LayerNormFeature(nn.Module):
     """
     Layer normalization over the feature (channel) dimension.
-    
-    :param num_features: Number of features (channels).
-    :type num_features: int
+
+    Args:
+        num_features (int): Number of features (channels).
     """
 
     def __init__(self, num_features: int):
@@ -23,10 +24,11 @@ class LayerNormFeature(nn.Module):
         """
         Applies normalization to input.
 
-        :param x: Input of shape `(B, T, C)`.
-        :type x: torch.Tensor
-        :return: Normalized output.
-        :rtype: torch.Tensor
+        Args:
+            x (torch.Tensor): Input of shape ``(B, T, C)``.
+
+        Returns:
+            torch.Tensor: Normalized output.
         """
         return self.norm(x)
 
@@ -35,10 +37,9 @@ class DownPool1D(nn.Module):
     """
     1D downsampling: stride-k Conv1d that doubles channels.
 
-    :param in_channels: Number of input channels.
-    :type in_channels: int
-    :param downsample_factor: Stride factor. Defaults to 2.
-    :type downsample_factor: int, optional
+    Args:
+        in_channels (int): Number of input channels.
+        downsample_factor (int, optional): Stride factor. Defaults to 2.
     """
 
     def __init__(self, in_channels: int, downsample_factor: int = 2):
@@ -56,10 +57,11 @@ class DownPool1D(nn.Module):
         """
         Downsample input.
 
-        :param x: Input of shape `(B, C, T)`.
-        :type x: torch.Tensor
-        :return: Downsampled output of shape `(B, 2C, T/k)`.
-        :rtype: torch.Tensor
+        Args:
+            x (torch.Tensor): Input of shape ``(B, C, T)``.
+
+        Returns:
+            torch.Tensor: Downsampled output of shape ``(B, 2C, T/k)``.
         """
         return self.conv(x)
 
@@ -68,10 +70,9 @@ class UpPool1D(nn.Module):
     """
     1D upsampling: stride-k ConvTranspose1d that halves channels.
 
-    :param in_channels: Number of input channels.
-    :type in_channels: int
-    :param upsample_factor: Upsampling stride. Defaults to 2.
-    :type upsample_factor: int, optional
+    Args:
+        in_channels (int): Number of input channels.
+        upsample_factor (int, optional): Upsampling stride. Defaults to 2.
     """
 
     def __init__(self, in_channels: int, upsample_factor: int = 2):
@@ -89,10 +90,11 @@ class UpPool1D(nn.Module):
         """
         Upsample input.
 
-        :param x: Input of shape `(B, C, T)`.
-        :type x: torch.Tensor
-        :return: Upsampled output of shape `(B, C/2, T*k)`.
-        :rtype: torch.Tensor
+        Args:
+            x (torch.Tensor): Input of shape ``(B, C, T)``.
+
+        Returns:
+            torch.Tensor: Upsampled output of shape ``(B, C/2, T*k)``.
         """
         return self.conv(x)
 
@@ -101,14 +103,11 @@ class LRU_UNet(nn.Module):
     """
     Linear Recurrent Unit (LRU) based U-Net for sequence tasks.
 
-    :param d_model: Input feature dimension.
-    :type d_model: int
-    :param d_state: Hidden state dimension for the LRU layers.
-    :type d_state: int
-    :param n_layers: Number of downsampling/upsampling stages.
-    :type n_layers: int
-    :param downsample_factor: Factor for each stage. Defaults to 2.
-    :type downsample_factor: int, optional
+    Args:
+        d_model (int): Input feature dimension.
+        d_state (int): Hidden state dimension for the LRU layers.
+        n_layers (int): Number of downsampling/upsampling stages.
+        downsample_factor (int, optional): Factor for each stage. Defaults to 2.
     """
 
     def __init__(
@@ -153,10 +152,11 @@ class LRU_UNet(nn.Module):
         """
         Forward pass through the U-Net.
 
-        :param x: Input sequence of shape `(B, C_in, T)`.
-        :type x: torch.Tensor
-        :return: Processed sequence of shape `(B, C_in, T)`.
-        :rtype: torch.Tensor
+        Args:
+            x (torch.Tensor): Input sequence of shape ``(B, C_in, T)``.
+
+        Returns:
+            torch.Tensor: Processed sequence of shape ``(B, C_in, T)``.
         """
         # Handle padding for stride alignment
         T = x.shape[2]

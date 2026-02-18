@@ -144,9 +144,9 @@ def rglru_scan_fn(
         return_last_state (bool, optional): Whether to return last hidden state. Defaults to False.
 
     Returns:
-        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: 
-            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)``.
-            - last_state (torch.Tensor, optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - torch.Tensor: Output tensor of shape ``(batch, dim, seqlen)``.
+            - torch.Tensor: last_state (optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     return RGLRUScanFn.apply(u, delta, A, return_last_state)
 
@@ -168,8 +168,8 @@ def rglru_scan_ref(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)``.
-            - last_state (torch.Tensor, optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
+            - torch.Tensor: Output tensor of shape ``(batch, dim, seqlen)``.
+            - torch.Tensor: last_state (optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     dtype_in = u.dtype
     batch, dim, seqlen = u.shape
@@ -600,15 +600,26 @@ def rglru_inner_ref(
     """
     Reference RG-LRU inner function (pure PyTorch).
 
-    Computes:
+    Computes::
+
         x_conv         = conv1d(x)[..., :L]
         recurrent_gate = sigmoid(x_conv @ W_r^T + b_r)
         input_gate     = sigmoid(x_conv @ W_i^T + b_i)
-        gate_t         = c x recurrent_gate_t
-        A_bar_t        = a ** gate_t
-        h_t            = A_bar_t x h_{t-1} + sqrt(1 - A_bar_t**2) x (input_gate_t x u_t)
-        y_t            = sum_n h_n,t
-        out            = (gate x y) @ W_out^T + b_out
+
+    Then applies the RG-LRU scan per time‑step:
+
+    .. math::
+
+        g_t        &= c \cdot \operatorname{recurrent\_gate}_t \\
+        \bar{A}_t  &= a^{\,g_t} \\
+        h_t        &= \bar{A}_t \odot h_{t-1}
+                      + \sqrt{1 - \bar{A}_t^2} \odot
+                        (\operatorname{input\_gate}_t \odot u_t) \\
+        y_t        &= \textstyle\sum_n h_{n,t}
+
+    Finally::
+
+        out = (gate * y) @ W_out^T + b_out
 
     Args:
         x (torch.Tensor): Input before conv, shape ``(batch, dim, seqlen)``.

@@ -26,12 +26,6 @@ class CentaurusBase(LTI_LRNN, ABC):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): The model dimension.
-        d_state (int): The state dimension.
-        sub_state_dim (int): The sub-state dimension.
-        discretization (Literal["zoh", "bilinear", "dirac", "async"], optional): Discretization method. Defaults to "zoh".
     """
 
     def __init__(
@@ -41,6 +35,16 @@ class CentaurusBase(LTI_LRNN, ABC):
         sub_state_dim: int,
         discretization: Literal["zoh", "bilinear", "dirac", "async"] = "zoh",
     ) -> None:
+        """
+        Initialize CentaurusBase.
+
+        Args:
+            d_model (int): The model dimension.
+            d_state (int): The state dimension.
+            sub_state_dim (int): The sub-state dimension.
+            discretization (Literal["zoh", "bilinear", "dirac", "async"], optional):
+                Discretization method. Defaults to ``"zoh"``.
+        """
         super().__init__(discretization=discretization)
 
         self.discretization = discretization
@@ -527,14 +531,6 @@ class Centaurus:
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): The model dimension.
-        d_state (int): The state dimension.
-        sub_state_dim (int): The sub-state dimension.
-        discretization (Literal["zoh", "bilinear", "dirac", "async"], optional): Discretization method. Defaults to "zoh".
-        mode (Literal["neck", "pointwise", "pw", "s5", "dws", "full"], optional): The Centaurus mode to instantiate. Defaults to "neck".
-        **kwargs: Additional arguments passed to the specific mode class.
     """
 
     def __new__(
@@ -546,6 +542,19 @@ class Centaurus:
         mode: Literal["neck", "pointwise", "pw", "s5", "dws", "full"] = "neck",
         **kwargs,
     ):
+        """
+        Create a mode-specific Centaurus instance.
+
+        Args:
+            d_model (int): The model dimension.
+            d_state (int): The state dimension.
+            sub_state_dim (int): The sub-state dimension.
+            discretization (Literal["zoh", "bilinear", "dirac", "async"], optional):
+                Discretization method. Defaults to ``"zoh"``.
+            mode (Literal["neck", "pointwise", "pw", "s5", "dws", "full"], optional):
+                The Centaurus mode to instantiate. Defaults to ``"neck"``.
+            **kwargs: Additional arguments passed to the specific mode class.
+        """
         mapping = {
             "neck": CentaurusNeck,
             "pointwise": CentaurusPWNeck,

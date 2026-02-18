@@ -118,8 +118,8 @@ class S4Kernel(S4KernelBase):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
-                - k_B (torch.Tensor): Convolution kernel.
-                - k_state (torch.Tensor | None): Kernel state, if state is provided.
+                - torch.Tensor: k_B : Convolution kernel.
+                - torch.Tensor | None: k_state : Kernel state, if state is provided.
         """
         # Initialize C~ if necessary
         if (
@@ -487,7 +487,7 @@ class S4Kernel(S4KernelBase):
             state (torch.Tensor): Current state tensor.
 
         Returns:
-            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+            A tuple containing:
                 - y.real (torch.Tensor): Output tensor.
                 - new_state (torch.Tensor): Updated state tensor.
         """
@@ -552,8 +552,8 @@ class S4DKernel(S4KernelBase):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
-                - K (torch.Tensor): Convolution kernel.
-                - K_state (torch.Tensor | None): Kernel state, if state is provided.
+                - torch.Tensor: K : Convolution kernel.
+                - torch.Tensor | None: K_state : Kernel state, if state is provided.
         """
         # Process parameters
         dt, A, B, C, dtA = process_ssm_params(
@@ -658,8 +658,8 @@ class S4DKernel(S4KernelBase):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - y.real (torch.Tensor): Output tensor (scaled by 2).
-                - next_state (torch.Tensor): Updated state tensor.
+                - torch.Tensor: y.real : Output tensor (scaled by 2).
+                - torch.Tensor: next_state : Updated state tensor.
         """
         next_state = contract(
             "h n, b h n -> b h n", self.dA, state

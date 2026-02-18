@@ -25,10 +25,6 @@ class LTI_LRNN(LRNN):
         >>> my_lrnn = LTI_LRNN("zoh")
         >>> # create dummy input tensor and perform forward pass
         >>> # in subclass
-
-    Args:
-        discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]): 
-            Discretization method to use.
     """
 
     def __init__(
@@ -37,6 +33,13 @@ class LTI_LRNN(LRNN):
             "zoh", "bilinear", "dirac", "no_discretization"
         ],
     ):
+        """
+        Initialize the LTI LRNN base class.
+
+        Args:
+            discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]):
+                Discretization method to use.
+        """
         # for optimal contractions
         assert opt_einsum.is_available()
         opt_einsum.strategy = "optimal"

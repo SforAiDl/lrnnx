@@ -35,20 +35,6 @@ class RGLRU(LTV_LRNN):
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
-
-    Args:
-        d_model (int): Model dimension.
-        d_conv (int, optional): Temporal convolution kernel size. Defaults to 4.
-        expand (int, optional): Expansion factor for inner dimension. Defaults to 1.
-        c (float, optional): Fixed scalar for recurrent gate scaling. Defaults to 8.0.
-        a_init_range (Tuple[float, float], optional): Tuple ``(lo, hi)`` so a is initialised in
-            ``[lo, hi]`` in ``(0, 1)``. Defaults to (0.9, 0.999).
-        conv_bias (bool, optional): Whether the Conv1D uses a bias term. Defaults to True.
-        bias (bool, optional): Whether Linear projections use bias. Defaults to False.
-        use_fast_path (bool, optional): Use the fused CUDA kernel when available. Defaults to True.
-        layer_idx (int, optional): Layer index (for multi-layer caching). Defaults to None.
-        device (torch.device, optional): Device for parameters. Defaults to None.
-        dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
     """
 
     def __init__(
@@ -65,6 +51,23 @@ class RGLRU(LTV_LRNN):
         device=None,
         dtype=None,
     ):
+        """
+        Initialize RG-LRU block.
+
+        Args:
+            d_model (int): Model dimension.
+            d_conv (int, optional): Temporal convolution kernel size. Defaults to 4.
+            expand (int, optional): Expansion factor for inner dimension. Defaults to 1.
+            c (float, optional): Fixed scalar for recurrent gate scaling. Defaults to 8.0.
+            a_init_range (Tuple[float, float], optional): Tuple ``(lo, hi)`` so *a* is
+                initialised in ``[lo, hi]`` in ``(0, 1)``. Defaults to ``(0.9, 0.999)``.
+            conv_bias (bool, optional): Whether the Conv1D uses a bias term. Defaults to True.
+            bias (bool, optional): Whether Linear projections use bias. Defaults to False.
+            use_fast_path (bool, optional): Use the fused CUDA kernel when available. Defaults to True.
+            layer_idx (int, optional): Layer index (for multi-layer caching). Defaults to None.
+            device (torch.device, optional): Device for parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+        """
         # RG-LRU handles discretisation internally
         super().__init__(discretization=None)
         factory_kwargs = {"device": device, "dtype": dtype}

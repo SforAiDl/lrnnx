@@ -1,3 +1,5 @@
+"""Custom CUDA/Triton scan operations for LRNN models."""
+
 from lrnnx.ops.rglru_scan import (
     rglru_inner_fn,
     rglru_inner_ref,
