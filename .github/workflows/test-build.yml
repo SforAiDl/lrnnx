@@ -38,6 +38,7 @@ jobs:
       - name: Build Wheel
         env:
           MAX_JOBS: 2
+          TORCH_CUDA_ARCH_LIST: "8.0"
         run: |
           export PATH=/usr/local/cuda/bin:$PATH
           timeout 5h python setup.py bdist_wheel --dist-dir=dist
