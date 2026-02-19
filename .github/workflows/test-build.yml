@@ -1,0 +1,48 @@
+name: Wheel Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-wheel:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install CUDA 12.9.1
+        uses: Jimver/cuda-toolkit@v0.2.26
+        id: cuda-toolkit
+        with:
+          cuda: "12.9.1"
+          linux-local-args: '["--toolkit"]'
+          method: "network"
+          sub-packages: '["nvcc"]'
+
+      - name: Install PyTorch & Build Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install setuptools==68.0.0 ninja packaging wheel
+          pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+
+      - name: Build Wheel
+        env:
+          MAX_JOBS: 2
+        run: |
+          export PATH=/usr/local/cuda/bin:$PATH
+          timeout 5h python setup.py bdist_wheel --dist-dir=dist
+          ls -lh dist/
+
+      - name: Upload Wheel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lrnnx-wheel
+          path: dist/*.whl
+          retention-days: 7
