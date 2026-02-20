@@ -24,13 +24,13 @@ def get_models(model_dim: int, train_mode: bool = False):
     mode = "train" if train_mode else "eval"
     return {
         "S5": lambda H=model_dim: getattr(
-            S5(hid_dim=H, state_dim=STATE_DIM, discretization="zoh").to(
+            S5(d_model=H, d_state=STATE_DIM, discretization="zoh").to(
                 DEVICE
             ),
             mode,
         )(),
         "LRU": lambda H=model_dim: getattr(
-            LRU(N=STATE_DIM, H=H).to(DEVICE), mode
+            LRU(d_state=STATE_DIM, d_model=H).to(DEVICE), mode
         )(),
         "Mamba": lambda H=model_dim: getattr(
             Mamba(d_model=H, d_state=STATE_DIM).to(DEVICE), mode
