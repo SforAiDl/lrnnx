@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
-        include:
+        config:
           - torch_version: "2.10.0"
             cuda_version: "13.0.0"
             cuda_tag: "cu130"
@@ -85,6 +85,7 @@ jobs:
     name: Upload to Existing Release
     runs-on: ubuntu-22.04
     needs: build-wheel
+    if: always()
     
     steps:
       - name: Checkout repository
