@@ -2,9 +2,6 @@ name: Wheel Build
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - ci
 
 jobs:
   build-wheel:
