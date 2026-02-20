@@ -27,7 +27,7 @@ jobs:
           cuda: "12.9.1"
           linux-local-args: '["--toolkit"]'
           method: "network"
-          sub-packages: '["nvcc"]'
+          sub-packages: '["nvcc", "cusparse", "cusparse-dev"]'
 
       - name: Install PyTorch & Build Dependencies
         run: |
