@@ -27,7 +27,10 @@ jobs:
           cuda: "12.9.1"
           linux-local-args: '["--toolkit"]'
           method: "network"
-          sub-packages: '["nvcc", "libcusparse-dev"]'
+          sub-packages: '["nvcc"]'
+
+      - name: Install cusparse
+        run: sudo apt-get install -y libcusparse-dev-12-9
 
       - name: Install PyTorch & Build Dependencies
         run: |
