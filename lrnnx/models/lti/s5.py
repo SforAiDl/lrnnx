@@ -112,9 +112,9 @@ class S5(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, Union[torch.Tensor, float], torch.Tensor]: A tuple containing:
-                - A_bar (torch.Tensor): Discretized system matrix A, shape ``(N,)``.
-                - gamma_bar (Union[torch.Tensor, float]): Input normalizer, shape ``(N,)`` or a float.
-                - C_complex (torch.Tensor): Complex output matrix C, shape ``(H, N)``.
+                - A_bar : Discretized system matrix A, shape ``(N,)``.
+                - gamma_bar : Input normalizer, shape ``(N,)`` or a float.
+                - C_complex : Complex output matrix C, shape ``(H, N)``.
         """
         log_A_real, A_imag = self.A.T  # (2, state_dim)
         dt = self.log_dt.exp()  # log time steps converted to real time.
@@ -150,8 +150,8 @@ class S5(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - A_power (torch.Tensor): Power of the discretized system matrix A, shape ``(N, L)``.
-                - B_bar (torch.Tensor): Normalized input projection matrix, shape ``(N, H)``.
+                - A_power : Power of the discretized system matrix A, shape ``(N, L)``.
+                - B_bar : Normalized input projection matrix, shape ``(N, H)``.
         """
         # Compute B_bar
         if isinstance(gamma_bar, float):

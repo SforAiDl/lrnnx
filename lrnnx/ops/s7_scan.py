@@ -189,8 +189,8 @@ def s7_scan_fn(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)`` in float32.
-            - last_state (torch.Tensor, optional): If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
+            - out : Output tensor of shape ``(batch, dim, seqlen)`` in float32.
+            - last_state : If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
     """
     return S7ScanFn.apply(
         u,
@@ -223,8 +223,8 @@ def s7_scan_ref(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - out (torch.Tensor): Output tensor of shape ``(batch, dim, seqlen)`` in float32.
-            - last_state (torch.Tensor, optional): If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
+            - out : Output tensor of shape ``(batch, dim, seqlen)`` in float32.
+            - last_state : If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
     """
     dtype_in = u.dtype
     batch, dim, seqlen = u.shape

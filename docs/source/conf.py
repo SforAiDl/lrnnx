@@ -106,6 +106,10 @@ def autodoc_process_signature(app, what, name, obj, options, signature, return_a
         # Clean up leftover formatting
         signature = re.sub(r'\(\s*,', '(', signature)
         signature = re.sub(r',\s*\)', ')', signature)
+        # Resolve np alias so intersphinx can link numpy.ndarray
+        signature = re.sub(r'\bnp\.ndarray\b', 'numpy.ndarray', signature)
+    if return_annotation:
+        return_annotation = re.sub(r'\bnp\.ndarray\b', 'numpy.ndarray', return_annotation)
     return signature, return_annotation
 
 

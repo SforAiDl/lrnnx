@@ -209,8 +209,8 @@ class S7(LTV_LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - out (torch.Tensor): Output tensor at the current timestep, shape ``(B, 1, H)``.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - out : Output tensor at the current timestep, shape ``(B, 1, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         ssm_state = inference_cache["lrnn_state"]
         dtype = hidden_states.dtype

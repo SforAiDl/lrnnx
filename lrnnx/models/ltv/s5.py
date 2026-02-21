@@ -217,8 +217,8 @@ class S5(LTV_LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - y (torch.Tensor): Output tensor at the current timestep.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - y : Output tensor at the current timestep.
+                - inference_cache : Updated cache dictionary.
         """
         if x.dim() == 3:
             x = x.squeeze(1)

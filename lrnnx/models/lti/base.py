@@ -80,8 +80,8 @@ class LTI_LRNN(LRNN):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - K (torch.Tensor): Powers of A matrix (A^0, A^1, ..., A^{L-1}), shape (N, L)
-                - B_norm (torch.Tensor): Normalized input projection matrix, shape (N, H)
+                - K : Powers of A matrix (A^0, A^1, ..., A^{L-1}), shape (N, L)
+                - B_norm : Normalized input projection matrix, shape (N, H)
         """
         raise NotImplementedError(
             "compute_kernel method must be implemented in the subclass."
@@ -109,8 +109,8 @@ class LTI_LRNN(LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - y (torch.Tensor): Output at current timestep, shape (B, H).
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - y : Output at current timestep, shape (B, H).
+                - inference_cache : Updated cache dictionary.
         """
         raise NotImplementedError(
             "step method must be implemented in the subclass."

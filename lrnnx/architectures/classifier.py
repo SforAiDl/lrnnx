@@ -60,14 +60,14 @@ class SequencePooling(nn.Module):
         Pool sequences, either reducing length (intermediate) or to a single vector (final).
 
         Args:
-            x (Tensor): Input of shape ``(B, L, D)``.
-            lengths (Tensor, optional): Actual sequence lengths of shape ``(B,)``.
+            x (torch.Tensor): Input of shape ``(B, L, D)``.
+            lengths (torch.Tensor, optional): Actual sequence lengths of shape ``(B,)``.
                 Defaults to None.
-            integration_timesteps (Tensor, optional): Timesteps of shape ``(B, L)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps of shape ``(B, L)``.
                 Defaults to None.
 
         Returns:
-            tuple[Tensor, Tensor | None, Tensor | None]: Pooled tensor (and updated
+            tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]: Pooled tensor (and updated
                 timesteps / lengths for intermediate pooling).
         """
 
@@ -272,14 +272,14 @@ class ClassifierBlock(nn.Module):
         Forward pass through a single classifier block.
 
         Args:
-            x (Tensor): Input of shape ``(B, L, D)``.
-            integration_timesteps (Tensor, optional): Timesteps for LTV models.
+            x (torch.Tensor): Input of shape ``(B, L, D)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models.
                 Defaults to None.
-            lengths (Tensor, optional): Actual sequence lengths.
+            lengths (torch.Tensor, optional): Actual sequence lengths.
                 Defaults to None.
 
         Returns:
-            Tensor | tuple[Tensor, Tensor | None, Tensor | None]:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
                 Final block returns logits ``(B, num_classes)``;
                 non-final blocks return ``(x, integration_timesteps, lengths)``.
         """
@@ -465,15 +465,15 @@ class Classifier(nn.Module):
         Forward pass of the classifier/regressor.
 
         Args:
-            x (Tensor): Input tensor. Token IDs of shape ``(B, L)`` when using embeddings,
+            x (torch.Tensor): Input tensor. Token IDs of shape ``(B, L)`` when using embeddings,
                 or continuous features of shape ``(B, L, input_dim)`` otherwise.
-            lengths (Tensor, optional): Actual sequence lengths of shape ``(B,)``.
+            lengths (torch.Tensor, optional): Actual sequence lengths of shape ``(B,)``.
                 Defaults to None.
-            integration_timesteps (Tensor, optional): Timesteps of shape ``(B, L)``
+            integration_timesteps (torch.Tensor, optional): Timesteps of shape ``(B, L)``
                 for LTV models. Defaults to None.
 
         Returns:
-            Tensor: Logits of shape ``(B, num_classes)`` or regression values
+            torch.Tensor: Logits of shape ``(B, num_classes)`` or regression values
                 of shape ``(B, output_dim)``.
         """
         # Process input based on type and model configuration

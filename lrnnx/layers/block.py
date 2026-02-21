@@ -77,8 +77,8 @@ class Block(nn.Module):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - hidden_states (torch.Tensor): The output of the block.
-                - residual (torch.Tensor): The updated residual tensor.
+                - hidden_states : The output of the block.
+                - residual : The updated residual tensor.
         """
         if not self.fused_add_norm:
             residual = (

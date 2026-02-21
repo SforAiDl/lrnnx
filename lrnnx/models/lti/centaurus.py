@@ -99,8 +99,8 @@ class CentaurusBase(LTI_LRNN, ABC):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - k (torch.Tensor): Latent kernel of shape (N, L), where N is the number of state channels.
-                - empty (torch.Tensor): Placeholder for compatibility with standard LTI interface expectations.
+                - k : Latent kernel of shape (N, L), where N is the number of state channels.
+                - empty : Placeholder for compatibility with standard LTI interface expectations.
         """
         arange = torch.arange(self.seq_len, device=self.A.device)  # (L,)
         dtA = einsum("n,nm->nm", self._positive_delta(), self.A)
@@ -235,8 +235,8 @@ class CentaurusBase(LTI_LRNN, ABC):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - y (torch.Tensor): Output tensor of shape (B, H_out) (real).
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - y : Output tensor of shape ``(B, H_out)`` (real).
+                - inference_cache : Updated cache dictionary.
         """
 
         dev = x.device

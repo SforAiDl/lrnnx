@@ -20,6 +20,11 @@ build:
     - mv docs/source/lrnnx.utils*.rst docs/source/api/utils/ 2>/dev/null || true
     
     # Delete duplicate files
+    # NOTE: lrnnx.utils.generation.rst uses :exclude-members: to hide
+    # dataclass fields (graph, x_buf, y_buf, etc.) that are already
+    # documented via :ivar: directives in the CUDAGraphStepCache docstring.
+    # Do NOT regenerate that file with sphinx-apidoc without re-adding
+    # the :exclude-members: directive, or the fields will appear twice.
     - rm -f docs/source/lrnnx.rst
     - rm -f docs/source/modules.rst
     - rm -f docs/source/api/models/lrnnx.models.rst

@@ -352,9 +352,9 @@ class LRNNModel(nn.Module):
         Single-step inference for autoregressive generation.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape ``(B, 1)`` — single token.
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, 1)`` — single token.
             caches (Dict): Dictionary mapping layer indices to their cached states.
-            integration_timesteps (Tensor, optional): Integration timesteps for LTV models
+            integration_timesteps (torch.Tensor, optional): Integration timesteps for LTV models
                 (shape: ``(B, 1)`` or ``(B,)``). Defaults to None.
 
         Returns:
@@ -464,11 +464,11 @@ class LRNNModel(nn.Module):
         Forward pass of the LRNN backbone.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape ``(B, L)``.
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, L)``.
             inference_params (Dict, optional): Parameters for inference mode. Defaults to None.
-            integration_timesteps (Tensor, optional): Timesteps for LTV models
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models
                 (shape: ``(B, L)``). Defaults to None.
-            lengths (Tensor, optional): Sequence lengths for variable-length sequences
+            lengths (torch.Tensor, optional): Sequence lengths for variable-length sequences
                 (shape: ``(B,)``). Defaults to None.
 
         Returns:
@@ -658,9 +658,9 @@ class LRNNLMHeadModel(nn.Module):
         Single-step inference for autoregressive generation.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape ``(B, 1)`` — single token.
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, 1)`` — single token.
             caches (Dict): Dictionary mapping layer indices to their cached states.
-            integration_timesteps (Tensor, optional): Integration timesteps for LTV models
+            integration_timesteps (torch.Tensor, optional): Integration timesteps for LTV models
                 (shape: ``(B, 1)`` or ``(B,)``). Defaults to None.
 
         Returns:
@@ -691,13 +691,13 @@ class LRNNLMHeadModel(nn.Module):
         Forward pass of the language model.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape ``(B, L)``.
-            position_ids (Tensor, optional): Position IDs (unused, for compatibility). Defaults to None.
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, L)``.
+            position_ids (torch.Tensor, optional): Position IDs (unused, for compatibility). Defaults to None.
             inference_params (Dict, optional): Parameters for inference mode. Defaults to None.
             num_last_tokens (int, optional): If > 0, only return logits for last n tokens. Defaults to 0.
-            integration_timesteps (Tensor, optional): Timesteps for LTV models
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models
                 (shape: ``(B, L)``). Defaults to None.
-            lengths (Tensor, optional): Sequence lengths for variable-length sequences
+            lengths (torch.Tensor, optional): Sequence lengths for variable-length sequences
                 (shape: ``(B,)``). Defaults to None.
 
         Returns:

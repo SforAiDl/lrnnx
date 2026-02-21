@@ -319,8 +319,8 @@ class S4(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
-                - y (torch.Tensor): Output tensor of the same shape as x.
-                - state (torch.Tensor | None): The next recurrent state, or None.
+                - y : Output tensor of the same shape as x.
+                - state : The next recurrent state, or None.
         """
         if self.transposed:
             x = rearrange(x, "b d ... -> b ... d")
@@ -402,8 +402,8 @@ class S4(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, dict]: A tuple containing:
-                - y_t (torch.Tensor): Output tensor at the current timestep of shape ``(B, H)``.
-                - inference_cache (dict): Updated cache dictionary.
+                - y_t : Output tensor at the current timestep of shape ``(B, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         state = inference_cache["lrnn_state"]
 

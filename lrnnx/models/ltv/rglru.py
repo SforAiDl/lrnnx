@@ -252,8 +252,8 @@ class RGLRU(LTV_LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: Tuple containing:
-                - out (torch.Tensor): Output tensor of shape ``(B, 1, D)``.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - out : Output tensor of shape ``(B, 1, D)``.
+                - inference_cache : Updated cache dictionary.
         """
         conv_state = inference_cache["conv_state"]
         ssm_state = inference_cache["lrnn_state"]

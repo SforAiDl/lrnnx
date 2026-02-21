@@ -145,8 +145,8 @@ def rglru_scan_fn(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - torch.Tensor: Output tensor of shape ``(batch, dim, seqlen)``.
-            - torch.Tensor: last_state (optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
+            - Output tensor of shape ``(batch, dim, seqlen)``.
+            - last_state : If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     return RGLRUScanFn.apply(u, delta, A, return_last_state)
 
@@ -168,8 +168,8 @@ def rglru_scan_ref(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - torch.Tensor: Output tensor of shape ``(batch, dim, seqlen)``.
-            - torch.Tensor: last_state (optional): If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
+            - Output tensor of shape ``(batch, dim, seqlen)``.
+            - last_state : If ``return_last_state`` is True, shape ``(batch, dim, dstate)``.
     """
     dtype_in = u.dtype
     batch, dim, seqlen = u.shape

@@ -19,7 +19,7 @@ def make_HiPPO(N: int) -> np.ndarray:
         N (int): The dimension of the HiPPO matrix.
 
     Returns:
-        np.ndarray: The generated HiPPO-LegS matrix of shape ``(N, N)``.
+        numpy.ndarray: The generated HiPPO-LegS matrix of shape ``(N, N)``.
     """
     P = np.sqrt(1 + 2 * np.arange(N))
     A = P[:, np.newaxis] * P[np.newaxis, :]
@@ -35,7 +35,7 @@ def make_NPLR_HiPPO(N: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         N (int): The dimension of the HiPPO matrix.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple containing the
+        tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]: A tuple containing the
             HiPPO matrix, P vector, and B vector.
     """
     hippo = make_HiPPO(N)
@@ -54,7 +54,7 @@ def make_DPLR_HiPPO(
         N (int): The dimension of the HiPPO matrix.
 
     Returns:
-        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]: A tuple
+        tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray]: A tuple
             containing Lambda, P_transformed, B_transformed, V, and B_orig.
     """
     A, P, B = make_NPLR_HiPPO(N)
@@ -97,7 +97,7 @@ def init_VinvB(
     Initialize B_tilde = V^{-1} @ B with lecun-style scaling.
 
     Args:
-        Vinv (np.ndarray): Inverse eigenvectors of shape ``(P, local_P)``.
+        Vinv (numpy.ndarray): Inverse eigenvectors of shape ``(P, local_P)``.
         local_P (int): Local state dimension (2*P if conj_sym else P).
         H (int): Hidden dimension.
 
@@ -120,7 +120,7 @@ def init_CV(
     Initialize C_tilde = C @ V with truncated normal.
 
     Args:
-        V (np.ndarray): Eigenvectors of shape ``(local_P, P)``.
+        V (numpy.ndarray): Eigenvectors of shape ``(local_P, P)``.
         local_P (int): Local state dimension (2*P if conj_sym else P).
         H (int): Hidden dimension.
 

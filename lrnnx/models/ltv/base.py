@@ -106,8 +106,8 @@ class LTV_LRNN(LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - y (torch.Tensor): Output at current timestep, shape ``(B, 1, H)``.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - y : Output at current timestep, shape ``(B, 1, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         raise NotImplementedError(
             "step method must be implemented in the subclass."

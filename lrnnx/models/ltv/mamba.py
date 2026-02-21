@@ -372,8 +372,8 @@ class Mamba(LTV_LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - out (torch.Tensor): Output at current timestep, shape ``(B, 1, D)``.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - out : Output at current timestep, shape ``(B, 1, D)``.
+                - inference_cache : Updated cache dictionary.
         """
         conv_state = inference_cache["conv_state"]
         ssm_state = inference_cache["lrnn_state"]

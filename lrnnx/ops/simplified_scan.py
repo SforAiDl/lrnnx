@@ -231,8 +231,8 @@ def simplified_scan_fn(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]: 
-            - torch.Tensor: Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
-            - torch.Tensor, optional: last_state (optional): If return_last_state=True, returns state of shape ``(batch, P)``, dtype=complex64.
+            - Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+            - last_state : If return_last_state=True, returns state of shape ``(batch, P)``, dtype=complex64.
     """
     # Validate discretization method
     valid_methods = ("bilinear", "zoh", "dirac")
@@ -277,8 +277,8 @@ def simplified_scan_ref(
 
     Returns:
         torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
-            - torch.Tensor: out : Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
-            - torch.Tensor, optional: last_state (optional): If return_last_state=True, also returns state of shape ``(batch, P)``, dtype=complex64.
+            - out : Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
+            - last_state : If return_last_state=True, also returns state of shape ``(batch, P)``, dtype=complex64.
     """
     dtype_in = u.dtype
     assert u.is_complex(), "Input u must be complex (complex64)"

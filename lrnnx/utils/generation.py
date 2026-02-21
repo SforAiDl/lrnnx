@@ -45,6 +45,20 @@ class CUDAGraphStepCache:
 
     Create instances via ``capture_graph`` - not directly.
 
+    :ivar graph: The captured CUDA graph.
+    :vartype graph: torch.cuda.CUDAGraph
+    :ivar x_buf: Fixed-address input buffer.
+    :vartype x_buf: torch.Tensor
+    :ivar y_buf: Fixed-address output buffer.
+    :vartype y_buf: torch.Tensor
+    :ivar state_buf: Fixed-address state buffer.
+    :vartype state_buf: torch.Tensor
+    :ivar mempool: CUDA memory pool identifier.
+    :vartype mempool: int
+    :ivar batch_size: Batch size the graph was captured for.
+    :vartype batch_size: int
+    :ivar dt_buf: Integration timestep buffer for event-driven models.
+    :vartype dt_buf: torch.Tensor or None
     """
 
     graph: torch.cuda.CUDAGraph

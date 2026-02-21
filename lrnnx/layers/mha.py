@@ -179,8 +179,8 @@ class MHA(nn.Module):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
-                - kv_cache (torch.Tensor): Tensor of shape ``(batch_size, max_seqlen, 2, num_heads_kv, head_dim)``.
-                - conv_state (torch.Tensor | None): Tensor of shape ``(batch_size, qkv_dim, d_conv)`` or None if ``d_conv=0``.
+                - kv_cache : Tensor of shape ``(batch_size, max_seqlen, 2, num_heads_kv, head_dim)``.
+                - conv_state : Tensor of shape ``(batch_size, qkv_dim, d_conv)`` or None if ``d_conv=0``.
         """
         dtype = self.out_proj.weight.dtype if dtype is None else dtype
         device = self.out_proj.weight.device

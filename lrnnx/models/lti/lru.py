@@ -116,9 +116,9 @@ class LRU(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
-                - A (torch.Tensor): Diagonal matrix of Lambda values, shape ``(N, N)``.
-                - B (torch.Tensor): Complex input projection matrix, shape ``(N, H)``.
-                - C (torch.Tensor): Complex output projection matrix, shape ``(H, N)``.
+                - A : Diagonal matrix of Lambda values, shape ``(N, N)``.
+                - B : Complex input projection matrix, shape ``(N, H)``.
+                - C : Complex output projection matrix, shape ``(H, N)``.
         """
         Lambda = torch.exp(
             -torch.exp(self.nu_log) + 1j * torch.exp(self.theta_log)
@@ -145,8 +145,8 @@ class LRU(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, torch.Tensor]: A tuple containing:
-                - Lambda (torch.Tensor): Complex eigenvalues/diagonal elements, shape ``(N,)``.
-                - B_norm (torch.Tensor): Normalized complex input projection matrix, shape ``(N, H)``.
+                - Lambda : Complex eigenvalues/diagonal elements, shape ``(N,)``.
+                - B_norm : Normalized complex input projection matrix, shape ``(N, H)``.
         """
         t_idx = torch.arange(
             L, dtype=torch.float32, device=Lambda.device
@@ -208,8 +208,8 @@ class LRU(LTI_LRNN):
 
         Returns:
             tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
-                - y (torch.Tensor): Output tensor of shape ``(B, H)``.
-                - inference_cache (Dict[str, Any]): Updated cache dictionary.
+                - y : Output tensor of shape ``(B, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         if x.dim() != 2:
             raise ValueError(

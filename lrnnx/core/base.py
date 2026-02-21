@@ -57,12 +57,12 @@ class LRNN(Module):
         Forward pass of through the LRNN.
 
         Args:
-            x (Tensor): Input tensor, ideally of shape ``(B, L, H)``.
-            integration_timesteps (Tensor, optional): Timesteps for async/event-driven
+            x (torch.Tensor): Input tensor, ideally of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for async/event-driven
                 discretization (Reference: https://arxiv.org/abs/2404.18508),
                 ideally of shape ``(B, L)``. Only applicable for LTV models;
                 LTI models ignore this parameter. Defaults to None.
-            lengths (Tensor, optional): Lengths of sequences, ideally of shape ``(B,)``,
+            lengths (torch.Tensor, optional): Lengths of sequences, ideally of shape ``(B,)``,
                 this is required for bidirectional models. Defaults to None.
 
         Returns:

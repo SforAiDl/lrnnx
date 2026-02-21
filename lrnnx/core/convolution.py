@@ -171,9 +171,9 @@ class FFTConvS4(nn.Module):
             **kwargs: Additional keyword arguments (absorbs return_output, src mask, etc.).
 
         Returns:
-            A tuple containing:
-                - torch.Tensor: y : Convolution output, shape ``(B, C, H, L)``.
-                - (torch.Tensor | None) : next_state : State for recurrent mode, or None.
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - y : Convolution output, shape ``(B, C, H, L)``.
+                - next_state : State for recurrent mode, or ``None``.
         """
 
         # Always work with (B D L) dimension in this module
@@ -219,9 +219,9 @@ class FFTConvS4(nn.Module):
             state (torch.Tensor): Recurrent state, shape ``(B, H, N)``.
 
         Returns:
-            A tuple containing:
-                -torch.Tensor:  y : Output, shape ``(B, C, H)``.
-                - torch.Tensor: next_state : Updated state, shape ``(B, H, N)``.
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - y : Output, shape ``(B, C, H)``.
+                - next_state : Updated state, shape ``(B, H, N)``.
         """
 
         y, next_state = self.kernel.step(x, state)  # (B C H)
