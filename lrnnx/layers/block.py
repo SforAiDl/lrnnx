@@ -15,6 +15,26 @@ else:
 
 
 class Block(nn.Module):
+    """
+    Simple block wrapping a mixer class with LayerNorm/RMSNorm and residual connection.
+
+    This Block has a slightly different structure compared to a regular prenorm Transformer block.
+    The standard block is: LN -> MHA/MLP -> Add.
+    [Ref: https://arxiv.org/abs/2002.04745]
+    Here we have: Add -> LN -> Mixer, returning both
+    the hidden_states (output of the mixer) and the residual.
+    This is purely for performance reasons, as we can fuse add and LayerNorm.
+    The residual needs to be provided (except for the very first block).
+
+    Args:
+        dim (int): The hidden dimension size.
+        mixer_cls (type): The mixer class to instantiate.
+        mlp_cls (type): The MLP class to instantiate, or nn.Identity.
+        norm_cls (type, optional): The normalization class. Defaults to nn.LayerNorm.
+        fused_add_norm (bool, optional): Whether to use Triton fused add and normalization. Defaults to True.
+        residual_in_fp32 (bool, optional): Whether to keep the residual connection in fp32. Defaults to False.
+    """
+
     def __init__(
         self,
         dim,
@@ -24,17 +44,6 @@ class Block(nn.Module):
         fused_add_norm=True,
         residual_in_fp32=False,
     ):
-        """
-        Simple block wrapping a mixer class with LayerNorm/RMSNorm and residual connection.
-
-        This Block has a slightly different structure compared to a regular prenorm Transformer block.
-        The standard block is: LN -> MHA/MLP -> Add.
-        [Ref: https://arxiv.org/abs/2002.04745]
-        Here we have: Add -> LN -> Mixer, returning both
-        the hidden_states (output of the mixer) and the residual.
-        This is purely for performance reasons, as we can fuse add and LayerNorm.
-        The residual needs to be provided (except for the very first block).
-        """
         super().__init__()
         self.residual_in_fp32 = residual_in_fp32
         self.fused_add_norm = fused_add_norm
@@ -56,12 +65,20 @@ class Block(nn.Module):
         residual: Optional[Tensor] = None,
         inference_params=None,
         **mixer_kwargs,
-    ):
-        """Pass the input through the encoder layer.
+    ) -> tuple[Tensor, Tensor]:
+        """
+        Pass the input through the encoder layer.
 
         Args:
-            hidden_states: the sequence to the encoder layer (required).
-            residual: hidden_states = Mixer(LN(residual))
+            hidden_states (torch.Tensor): The sequence input to the encoder layer.
+            residual (torch.Tensor, optional): The residual connection, calculated as hidden_states = Mixer(LN(residual)). Defaults to None.
+            inference_params (Any, optional): Parameters used during autoregressive generation/inference. Defaults to None.
+            **mixer_kwargs: Additional keyword arguments passed directly to the underlying mixer module.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - hidden_states : The output of the block.
+                - residual : The updated residual tensor.
         """
         if not self.fused_add_norm:
             residual = (
@@ -125,9 +142,20 @@ class Block(nn.Module):
         return hidden_states, residual
 
     def allocate_inference_cache(
-        self, batch_size, max_seqlen, dtype=None, **kwargs
+        self, batch_size: int, max_seqlen: int, dtype=None, **kwargs
     ):
-        """Allocate inference cache for the mixer."""
+        """
+        Allocate inference cache for the mixer.
+
+        Args:
+            batch_size (int): The batch size.
+            max_seqlen (int): The maximum sequence length.
+            dtype (torch.dtype, optional): The data type for the cache. Defaults to None.
+            **kwargs: Additional keyword arguments to pass to the mixer's cache allocation.
+
+        Returns:
+            Any: The allocated cache object returned by the mixer.
+        """
         try:
             return self.mixer.allocate_inference_cache(
                 batch_size, max_seqlen, dtype=dtype, **kwargs

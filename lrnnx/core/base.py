@@ -19,10 +19,9 @@ class LRNN(Module):
         ],
     ):
         """
-        Base class for all LRNN models.
+        Initialize the base LRNN model.
 
-        Args
-        ----
+        Args:
             discretization (Optional[Literal]): Discretization method to use, can be one of:
                 - "zoh" for Zero-Order Hold
                 - "bilinear" for Bilinear method
@@ -30,9 +29,9 @@ class LRNN(Module):
                 - "async" for asynchronous discretization
                 - "no_discretization" for no discretization
                 - None for models that handle discretization internally
-            Other parameters can be passed to the subclass.
 
         Each model must have a usage example in the documentation, like so:
+
         >>> from lrnnx.core import LRNN
         >>> my_lrnn = LRNN("zoh")
         >>> # create dummy input tensor and perform forward pass
@@ -57,21 +56,17 @@ class LRNN(Module):
         """
         Forward pass of through the LRNN.
 
-        Args
-        ----
-            x (Tensor): Input tensor, ideally of shape (B, L, H).
-
-            integration_timesteps (Tensor): Timesteps for async/event-driven
+        Args:
+            x (torch.Tensor): Input tensor, ideally of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for async/event-driven
                 discretization (Reference: https://arxiv.org/abs/2404.18508),
-                ideally of shape (B, L). Only applicable for LTV models;
-                LTI models ignore this parameter.
+                ideally of shape ``(B, L)``. Only applicable for LTV models;
+                LTI models ignore this parameter. Defaults to None.
+            lengths (torch.Tensor, optional): Lengths of sequences, ideally of shape ``(B,)``,
+                this is required for bidirectional models. Defaults to None.
 
-            lengths (Tensor): Lengths of sequences, ideally of shape (B,),
-                this is required for bidirectional models.
-
-        Returns
-        -------
-            Tensor: Output tensor, same shape as input (x), ideally (B, L, H).
+        Returns:
+            torch.Tensor: Output tensor, same shape as input (x), ideally ``(B, L, H)``.
         """
 
         raise NotImplementedError(

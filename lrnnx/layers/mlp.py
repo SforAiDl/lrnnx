@@ -11,7 +11,19 @@ from torch.nn import functional as F
 
 
 class GatedMLP(nn.Module):
-    """Gated Multi-Layer Perceptron."""
+    """
+    Gated Multi-Layer Perceptron.
+
+    Args:
+        in_features (int): Number of input features.
+        hidden_features (int, optional): Number of hidden features. Defaults to None.
+        out_features (int, optional): Number of output features. Defaults to None.
+        activation (callable, optional): Activation function to apply to the gate. Defaults to F.silu.
+        bias (bool, optional): Whether to include bias terms in linear layers. Defaults to False.
+        multiple_of (int, optional): Round hidden_features to be a multiple of this value. Defaults to 128.
+        device (torch.device, optional): Device to place tensors on. Defaults to None.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -24,19 +36,6 @@ class GatedMLP(nn.Module):
         device=None,
         dtype=None,
     ):
-        """
-        Initialize the Gated Multi-Layer Perceptron.
-
-        Args:
-            in_features (int): Number of input features
-            hidden_features (int, optional): Number of hidden features
-            out_features (int, optional): Number of output features
-            activation (callable): Activation function to apply to the gate
-            bias (bool): Whether to include bias terms in linear layers
-            multiple_of (int): Round hidden_features to be multiple of this value
-            device (torch.device, optional): Device to place tensors on
-            dtype (torch.dtype, optional): Data type for tensors
-        """
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
 
@@ -65,10 +64,10 @@ class GatedMLP(nn.Module):
         Forward pass of the Gated MLP.
 
         Args:
-            x (Tensor): Input tensor of shape (..., in_features)
+            x (torch.Tensor): Input tensor of shape ``(..., in_features)``.
 
         Returns:
-            Tensor: Output tensor of shape (..., out_features)
+            torch.Tensor: Output tensor of shape ``(..., out_features)``.
         """
         y = self.fc1(x)
         y, gate = y.chunk(2, dim=-1)

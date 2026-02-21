@@ -56,6 +56,21 @@ class SequencePooling(nn.Module):
         lengths: Optional[Tensor] = None,
         integration_timesteps: Optional[Tensor] = None,
     ) -> tuple[Tensor, Optional[Tensor], Optional[Tensor]]:
+        """
+        Pool sequences, either reducing length (intermediate) or to a single vector (final).
+
+        Args:
+            x (torch.Tensor): Input of shape ``(B, L, D)``.
+            lengths (torch.Tensor, optional): Actual sequence lengths of shape ``(B,)``.
+                Defaults to None.
+            integration_timesteps (torch.Tensor, optional): Timesteps of shape ``(B, L)``.
+                Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]: Pooled tensor (and updated
+                timesteps / lengths for intermediate pooling).
+        """
+
         B, L, D = x.shape
 
         # Intermediate pooling (reducing sequence length)
@@ -253,6 +268,21 @@ class ClassifierBlock(nn.Module):
         integration_timesteps: Optional[Tensor] = None,
         lengths: Optional[Tensor] = None,
     ) -> Union[Tensor, Tuple[Tensor, Optional[Tensor], Optional[Tensor]]]:
+        """
+        Forward pass through a single classifier block.
+
+        Args:
+            x (torch.Tensor): Input of shape ``(B, L, D)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models.
+                Defaults to None.
+            lengths (torch.Tensor, optional): Actual sequence lengths.
+                Defaults to None.
+
+        Returns:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
+                Final block returns logits ``(B, num_classes)``;
+                non-final blocks return ``(x, integration_timesteps, lengths)``.
+        """
         # Standard block processing
         x_res = x
         x = self.lrnn(x, integration_timesteps, lengths)
@@ -276,9 +306,12 @@ class ClassifierBlock(nn.Module):
 
 class Classifier(nn.Module):
     """
-    Classifier: Sequence classifier or regressor using stacked Linear RNN blocks.
+    Classifier: Sequence classifier or regressor...
 
-    Supports both classification and regression tasks on sequential data.
+    Args:
+        input_dim (int): Number of input features.
+        num_classes (int): Number of output classes.
+        d_model (int): Hidden dimension of the model.
     """
 
     def __init__(
@@ -306,23 +339,27 @@ class Classifier(nn.Module):
         """
         Initializes the Classifier.
 
-        Args
-        ----
-            input_dim: Number of input features (ignored when vocab_size is provided)
-            num_classes: Number of output classes
-            d_model: Hidden dimension of the model
-            d_state: State dimension for the LRNN layers
-            n_layers: Number of LRNN layers
-            lrnn_cls: Custom LRNN class or list of classes (one per layer) to use. Defaults to LRU.
-            pooling: Pooling strategy for sequence outputs
-            dropout: Dropout probability
-            intermediate_pooling: Pooling strategy for each layer
-            pooling_factor: Factor by which to reduce sequence length
-            vocab_size: Size of vocabulary for token embeddings (optional)
-            embedding_dim: Dimension of embeddings (defaults to d_model)
-            max_position_embeddings: Max sequence length for positional embeddings
-            padding_idx: Index of padding token for embedding layer
-            lrnn_params: Additional parameters for LRNN modules
+        Args:
+            input_dim (int): Number of input features (ignored when vocab_size is provided).
+            num_classes (int, optional): Number of output classes. Defaults to 0.
+            output_dim (int, optional): Number of regression outputs. Defaults to 1.
+            d_model (int, optional): Hidden dimension of the model. Defaults to 128.
+            d_state (int, optional): State dimension for the LRNN layers. Defaults to 64.
+            n_layers (int, optional): Number of LRNN layers. Defaults to 4.
+            lrnn_cls (type | list[type], optional): Custom LRNN class or list of classes
+                (one per layer) to use. Defaults to LRU.
+            pooling (str, optional): Pooling strategy for sequence outputs. Defaults to ``"last"``.
+            dropout (float, optional): Dropout probability. Defaults to 0.1.
+            intermediate_pooling (str | list[str], optional): Pooling strategy for
+                each layer. Defaults to ``"none"``.
+            pooling_factor (int | list[int], optional): Factor by which to reduce
+                sequence length. Defaults to 2.
+            vocab_size (int, optional): Size of vocabulary for token embeddings. Defaults to None.
+            embedding_dim (int, optional): Dimension of embeddings (defaults to d_model). Defaults to None.
+            max_position_embeddings (int, optional): Max sequence length for positional
+                embeddings. Defaults to None.
+            padding_idx (int, optional): Index of padding token for embedding layer. Defaults to 0.
+            lrnn_params (dict, optional): Additional parameters for LRNN modules. Defaults to None.
         """
         super().__init__()
         self.d_model = d_model
@@ -426,7 +463,18 @@ class Classifier(nn.Module):
     ) -> Union[Tensor, Tuple[Tensor, Optional[Tensor], Optional[Tensor]]]:
         """
         Forward pass of the classifier/regressor.
-        Returns logits (classification) or regression values depending on num_classes.
+
+        Args:
+            x (torch.Tensor): Input tensor. Token IDs of shape ``(B, L)`` when using embeddings,
+                or continuous features of shape ``(B, L, input_dim)`` otherwise.
+            lengths (torch.Tensor, optional): Actual sequence lengths of shape ``(B,)``.
+                Defaults to None.
+            integration_timesteps (torch.Tensor, optional): Timesteps of shape ``(B, L)``
+                for LTV models. Defaults to None.
+
+        Returns:
+            torch.Tensor: Logits of shape ``(B, num_classes)`` or regression values
+                of shape ``(B, output_dim)``.
         """
         # Process input based on type and model configuration
         if self.has_embedding:

@@ -26,30 +26,18 @@ contract = torch.einsum
 
 
 class S4D(LTI_LRNN):
-    """General block design wrapping an inner layer. Currently only layer=FFTConv is supported, but easy to incorporate others.
-
-    Arguments:
-    - bottleneck: Reduce dimension of inner layer (e.g. used in GSS).
-    - gate: Add multiplicative gating (e.g. used in GSS), which is essentially a multiplicative instead of additive residual branch.
-    - gate_act: Activation function to apply on the gate residual branch.
-    - mult_act: Activation function to apply after gate multiplication (e.g. GELU in GSS).
-    - final_act: Activation function to apply after final linear layer. 'id' for no activation, None for no linear layer at all.
-
-    - initializer: Initializer on final linear layer.
-    - weight_norm: Weight normalization on final linear layer.
-    - dropout: standard dropout argument. tie_dropout=True ties the dropout mask across the sequence length, emulating nn.Dropout1d
-
-    - transposed: Choose backbone axis ordering of (B, L, H) (if False) or (B, H, L) (if True) [B=batch size, L=sequence length, H=model dimension]
+    """
+    General block design wrapping an inner layer. Currently only layer=FFTConv is supported, but easy to incorporate others.
 
     Other options are all experimental and should not need to be configured.
 
-    Example
-    -------
-    >>> model = S4D(d_model=64, d_state=64, l_max=1024)
-    >>> x = torch.randn(2, 1024, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 1024, 64])
+    Example:
+        >>> model = S4D(d_model=64, d_state=64, l_max=1024)
+        >>> x = torch.randn(2, 1024, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 1024, 64])
+
     """
 
     def __init__(
@@ -84,6 +72,42 @@ class S4D(LTI_LRNN):
         disc="zoh",  # S4D-specific: discretization method
         **layer_args,  # Any remaining args for FFTConv
     ):
+        """
+        Initialize S4D block.
+
+        Args:
+            d_model (int): Model dimension.
+            bottleneck (int, optional): Reduce dimension of inner layer (e.g. used in GSS). Defaults to None.
+            gate (int, optional): Add multiplicative gating (e.g. used in GSS). Defaults to None.
+            final_act (str, optional): Activation after final linear layer. ``'id'`` for no
+                activation, ``None`` for no linear layer at all. Defaults to ``"glu"``.
+            postact (str, optional): Deprecated, use *final_act*. Defaults to None.
+            dropout (float, optional): Standard dropout argument. Defaults to 0.0.
+            tie_dropout (bool, optional): Tie dropout mask across sequence length,
+                emulating ``nn.Dropout1d``. Defaults to False.
+            transposed (bool, optional): Backbone axis ordering ``(B, L, H)`` (False)
+                or ``(B, H, L)`` (True). Defaults to True.
+            l_max (int, optional): Maximum sequence length for the kernel. Defaults to None.
+            channels (int, optional): Number of channels/heads. Defaults to 1.
+            d_state (int, optional): State dimension (N). Defaults to 64.
+            dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
+            dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
+            dt_tie (bool, optional): Tie dt across channels. Defaults to True.
+            dt_transform (str, optional): Transformation to apply to dt. Defaults to ``"exp"``.
+            dt_fast (bool, optional): Fast dt initialization. Defaults to False.
+            rank (int, optional): Rank of the low-rank correction for DPLR. Defaults to 1.
+            n_ssm (int, optional): Number of independent SSMs. Defaults to None.
+            init (str, optional): Initialization method for the A matrix (e.g., ``"legs"``). Defaults to ``"legs"``.
+            deterministic (bool, optional): Use deterministic initialization. Defaults to False.
+            real_transform (str, optional): Transformation for the real part of A. Defaults to ``"exp"``.
+            imag_transform (str, optional): Transformation for the imaginary part of A. Defaults to ``"none"``.
+            is_real (bool, optional): Whether to use real-valued SSMs. Defaults to False.
+            lr (float, optional): Specific learning rate for SSM parameters. Defaults to None.
+            wd (float, optional): Specific weight decay for SSM parameters. Defaults to 0.0.
+            verbose (bool, optional): Print initialization information. Defaults to True.
+            disc (str, optional): S4D-specific discretization method. Defaults to ``"zoh"``.
+            **layer_args: Any remaining args passed directly to FFTConv.
+        """
         super().__init__(
             discretization="no_discretization"
         )  # discretization is unused in S4
@@ -289,12 +313,19 @@ class S4D(LTI_LRNN):
 
     def forward(
         self, x, lengths=None, **kwargs
-    ):  # absorbs return_output and transformer src mask
+    ):  
         """
-        x: (B H L) if self.transposed else (B L H)
-        state: (H N) never needed unless you know what you're doing
+        Forward pass of the S4D block.
 
-        Returns: same shape as x
+        Args:
+            x (torch.Tensor): Input tensor of shape ``(B, H, L)`` if ``self.transposed`` else ``(B, L, H)``.
+            lengths (torch.Tensor | int, optional): Lengths of the sequences in the batch for padding masking. Defaults to None.
+            **kwargs: Additional arguments absorbing return_output and transformer src mask.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - y : Output tensor of the same shape as x.
+                - state : The next recurrent state, or None.
         """
         if self.transposed:
             x = rearrange(x, "b d ... -> b ... d")
@@ -366,16 +397,18 @@ class S4D(LTI_LRNN):
         inference_cache: dict,
         **kwargs,
     ) -> tuple:
-        """Perform a single recurrent step of the S4D model.
+        """
+        Perform a single recurrent step of the S4D model.
 
-        Args
-        ----
-            x (Tensor): Input at current timestep, shape (B, H).
-            inference_cache (Dict[str, Any]): Cache from allocate_inference_cache().
+        Args:
+            x (torch.Tensor): Input at current timestep, shape ``(B, H)``.
+            inference_cache (dict): Cache from ``allocate_inference_cache()``.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-            Tuple[Tensor, Dict[str, Any]]: Output y_t of shape (B, H) and updated cache.
+        Returns:
+            tuple[torch.Tensor, dict]: A tuple containing:
+                - y_t : Output tensor at the current timestep of shape ``(B, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         state = inference_cache["lrnn_state"]
 
@@ -410,19 +443,20 @@ class S4D(LTI_LRNN):
         dtype=None,
         **kwargs,
     ) -> dict:
-        """Allocate cache for step-by-step inference.
+        """
+        Allocate cache for step-by-step inference.
 
-        Calls setup_step() to prepare discrete-time matrices (dA, dB, dC),
+        Calls ``setup_step()`` to prepare discrete-time matrices (dA, dB, dC),
         then creates a zero-initialised hidden state.
 
-        Args
-        ----
+        Args:
             batch_size (int): Batch size for inference.
-            max_seqlen (int): Unused, kept for interface consistency.
+            max_seqlen (int, optional): Unused, kept for interface consistency. Defaults to 1.
+            dtype (torch.dtype, optional): Unused. Defaults to None.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-            Dict[str, Any]: Cache dict with "lrnn_state" key.
+        Returns:
+            dict: Cache dict with "lrnn_state" key.
         """
         self.layer.setup_step()
         state = self.default_state(

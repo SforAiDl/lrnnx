@@ -22,34 +22,40 @@ except ImportError:
 
 
 class S7(LTV_LRNN):
-    def __init__(
-        self,
-        d_model,
-        d_state,
-        J=1,
-        use_fast_path=True,
-        layer_idx=None,
-        device=None,
-        dtype=None,
-    ):
-        """
-        Initialize S7 layer.
+    """
+    S7: Selective and Simplified State Space Layers for Sequence Modeling.
 
-        Args
-        ----
-            d_model (int): Model dimension
-            use_fast_path (bool): Whether to use the CUDA fast path if available
-            layer_idx (int, optional): Layer index for multi-layer models, used for caching
-            device (torch.device, optional): Device for the model parameters
-            dtype (torch.dtype, optional): Data type for the model parameters
-
-        Example
-        -------
-        >>> model = S7(d_model=64)
+    Example:
+        >>> model = S7(d_model=64, d_state=64)
         >>> x = torch.randn(2, 128, 64)
         >>> y = model(x)
         >>> y.shape
         torch.Size([2, 128, 64])
+    """
+
+    def __init__(
+        self,
+        d_model: int,
+        d_state: int,
+        J: int = 1,
+        use_fast_path: bool = True,
+        layer_idx: Optional[int] = None,
+        device=None,
+        dtype=None,
+    ):
+        """
+        Initialize S7 model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension. Must be divisible by J.
+            J (int, optional): Number of blocks for initialization. Defaults to 1.
+            use_fast_path (bool, optional): Whether to use the CUDA fast path if available.
+                Defaults to True.
+            layer_idx (int, optional): Layer index for multi-layer models, used for caching.
+                Defaults to None.
+            device (torch.device, optional): Device for the model parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for the model parameters. Defaults to None.
         """
         super().__init__(discretization="no_discretization")
         factory_kwargs = {"device": device, "dtype": dtype}
@@ -102,11 +108,23 @@ class S7(LTV_LRNN):
 
     def forward(
         self,
-        hidden_states,
+        hidden_states: Tensor,
         integration_timesteps: Optional[Tensor] = None,
         lengths: Optional[Tensor] = None,
         inference_cache: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> Tensor:
+        """
+        Forward pass through the S7 layer.
+
+        Args:
+            hidden_states (torch.Tensor): Input tensor of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for async/event-driven discretization. Defaults to None.
+            lengths (torch.Tensor, optional): Lengths of sequences, required for variable-length sequences. Defaults to None.
+            inference_cache (Dict[str, Any], optional): Cache for autoregressive generation. Defaults to None.
+
+        Returns:
+            torch.Tensor: Output tensor of shape ``(B, L, H)``.
+        """
         if hidden_states.dim() != 3:
             raise ValueError(
                 f"Expected 3D input (batch, seqlen, dim), got {hidden_states.dim()}D"
@@ -181,6 +199,19 @@ class S7(LTV_LRNN):
         inference_cache: Dict[str, Any],
         **kwargs,
     ) -> Tuple[Tensor, Dict[str, Any]]:
+        """
+        Performs a single recurrent step of S7 for autoregressive inference.
+
+        Args:
+            hidden_states (torch.Tensor): Input at current timestep, shape ``(B, 1, H)``.
+            inference_cache (Dict[str, Any]): Cache dictionary containing the model state.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
+                - out : Output tensor at the current timestep, shape ``(B, 1, H)``.
+                - inference_cache : Updated cache dictionary.
+        """
         ssm_state = inference_cache["lrnn_state"]
         dtype = hidden_states.dtype
         assert hidden_states.shape[1] == 1
@@ -253,6 +284,18 @@ class S7(LTV_LRNN):
         dtype: Optional[torch.dtype] = None,
         **kwargs,
     ) -> Dict[str, Any]:
+        """
+        Allocates cache for S7 autoregressive inference.
+
+        Args:
+            batch_size (int): The batch size for inference.
+            max_seqlen (int): Maximum sequence length (unused, kept for interface consistency).
+            dtype (torch.dtype, optional): Data type for allocated tensors. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Dict[str, Any]: Cache dictionary containing "lrnn_state" and "seqlen_offset".
+        """
         device = self.in_proj.weight.device
         ssm_dtype = self.in_proj.weight.dtype if dtype is None else dtype
         ssm_state = torch.zeros(

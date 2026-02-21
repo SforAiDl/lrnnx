@@ -28,6 +28,7 @@ from lrnnx.ops.triton.layer_norm import _layer_norm_fwd
 
 
 class SelectiveScanFn(torch.autograd.Function):
+    """Autograd function for the Mamba Selective Scan CUDA kernel."""
 
     @staticmethod
     def forward(
@@ -45,6 +46,27 @@ class SelectiveScanFn(torch.autograd.Function):
         return_last_state=False,
         discretization=None,
     ):
+        """
+        Forward pass of the selective scan.
+
+        Args:
+            ctx (Any): Autograd context.
+            u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+            delta (torch.Tensor): Delta tensor of shape ``(batch, dim, seqlen)``.
+            A (torch.Tensor): State matrix A of shape ``(dim, dstate)``.
+            B (torch.Tensor): Input matrix B of shape ``(batch, dstate, seqlen)`` or ``(dim, dstate)``.
+            C (torch.Tensor): Output matrix C of shape ``(batch, dstate, seqlen)`` or ``(dim, dstate)``.
+            D (torch.Tensor, optional): Skip connection vector of shape ``(dim,)``. Defaults to None.
+            z (torch.Tensor, optional): Gating tensor of shape ``(batch, dim, seqlen)``. Defaults to None.
+            delta_bias (torch.Tensor, optional): Bias for delta of shape ``(dim,)``. Defaults to None.
+            deltaA (torch.Tensor, optional): Asymmetric delta for A of shape ``(batch, dim, seqlen)``. Defaults to None.
+            delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to False.
+            return_last_state (bool, optional): Whether to return the final state. Defaults to False.
+            discretization (str, optional): Discretization method to pass to the kernel. Defaults to None.
+
+        Returns:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor, and optionally the last state.
+        """
         # Use is_contiguous() instead of stride(-1) != 1 check, since a tensor
         # can have stride(-1) == 1 but still be non-contiguous in other dimensions
         if not u.is_contiguous():
@@ -102,6 +124,17 @@ class SelectiveScanFn(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, dout, *args):
+        """
+        Backward pass for the selective scan.
+
+        Args:
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of the output tensor.
+            *args: Additional gradients (e.g., for last_state, which are ignored).
+
+        Returns:
+            tuple: Gradients with respect to the inputs.
+        """
         if not ctx.has_z:
             u, delta, A, B, C, D, delta_bias, deltaA, x = ctx.saved_tensors
             z = None
@@ -177,9 +210,27 @@ def selective_scan_fn(
     return_last_state=False,
     discretization="mamba",
 ):
-    """if return_last_state is True, returns (out, last_state)
-    last_state has shape (batch, dim, dstate). Note that the gradient of the last state is
-    not considered in the backward pass.
+    """
+    Apply the CUDA selective scan function.
+
+    Args:
+        u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+        delta (torch.Tensor): Delta tensor of shape ``(batch, dim, seqlen)``.
+        A (torch.Tensor): State matrix A of shape ``(dim, dstate)``.
+        B (torch.Tensor): Input matrix B of shape ``(batch, dstate, seqlen)`` or ``(dim, dstate)``.
+        C (torch.Tensor): Output matrix C of shape ``(batch, dstate, seqlen)`` or ``(dim, dstate)``.
+        D (torch.Tensor, optional): Skip connection vector of shape ``(dim,)``. Defaults to None.
+        z (torch.Tensor, optional): Gating tensor of shape ``(batch, dim, seqlen)``. Defaults to None.
+        delta_bias (torch.Tensor, optional): Bias for delta of shape ``(dim,)``. Defaults to None.
+        deltaA (torch.Tensor, optional): Asymmetric delta for A of shape ``(batch, dim, seqlen)``. Defaults to None.
+        delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to False.
+        return_last_state (bool, optional): If True, returns ``(out, last_state)``.
+            The last_state has shape ``(batch, dim, dstate)``. Note that the gradient
+            of the last state is not considered in the backward pass. Defaults to False.
+        discretization (str, optional): Discretization method. Defaults to "mamba".
+
+    Returns:
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor, and optionally the last state.
     """
     return SelectiveScanFn.apply(
         u,
@@ -211,13 +262,27 @@ def selective_scan_ref(
     return_last_state=False,
     discretization="mamba",
 ):
-    # u: (batch, dim, L)
-    # delta: (batch, dim, L)
-    # A: (dim, dstate)
-    # B: (dim, dstate) or (batch, dim, L) or (batch, groups, dstate, L)
-    # C: (dim, dstate) or (batch, dim, L) or (batch, groups, dstate, L)
-    # D: (dim)
-    # z: (batch, dim, L)
+    """
+    Reference (pure PyTorch) implementation of the selective scan.
+
+    Args:
+        u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+        delta (torch.Tensor): Delta tensor of shape ``(batch, dim, seqlen)``.
+        A (torch.Tensor): State matrix A of shape ``(dim, dstate)``.
+        B (torch.Tensor): Matrix B. Can be shape ``(dim, dstate)``, ``(batch, dim, seqlen)``, or ``(batch, groups, dstate, seqlen)``.
+        C (torch.Tensor): Matrix C. Can be shape ``(dim, dstate)``, ``(batch, dim, seqlen)``, or ``(batch, groups, dstate, seqlen)``.
+        D (torch.Tensor, optional): Skip connection vector of shape ``(dim,)``. Defaults to None.
+        z (torch.Tensor, optional): Gating tensor of shape ``(batch, dim, seqlen)``. Defaults to None.
+        delta_bias (torch.Tensor, optional): Bias for delta of shape ``(dim,)``. Defaults to None.
+        deltaA (torch.Tensor, optional): Asymmetric delta for A of shape ``(batch, dim, seqlen)``. Defaults to None.
+        delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to False.
+        return_last_state (bool, optional): Whether to return the final state. Defaults to False.
+        discretization (str, optional): Discretization method to use. Defaults to "mamba".
+
+    Returns:
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor of shape ``(batch, dim, seqlen)``,
+            and optionally the last state of shape ``(batch, dim, dstate)``.
+    """
     dtype_in = u.dtype
     u_for_scan = u.float()
     delta = delta.float()
@@ -367,6 +432,19 @@ def rms_norm_forward(
     eps=1e-6,
     is_rms_norm=True,
 ):
+    """
+    Forward pass for RMS normalization.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape ``(batch * seqlen, dim)``.
+        weight (torch.Tensor): Weight tensor of shape ``(dim,)``.
+        bias (torch.Tensor | None): Bias tensor of shape ``(dim,)`` or None.
+        eps (float, optional): Epsilon for numerical stability. Defaults to 1e-6.
+        is_rms_norm (bool, optional): Whether to use RMS norm (vs Layer norm). Defaults to True.
+
+    Returns:
+        torch.Tensor: Normalized output tensor of shape ``(batch * seqlen, dim)``.
+    """
     # x (b l) d
     if x.stride(-1) != 1:
         x = x.contiguous()
@@ -387,6 +465,7 @@ def rms_norm_forward(
 
 
 class MambaInnerFn(torch.autograd.Function):
+    """Autograd function for the fused Mamba inner loop."""
 
     @staticmethod
     @custom_fwd
@@ -414,7 +493,33 @@ class MambaInnerFn(torch.autograd.Function):
         b_c_dt_rms_eps=1e-6,
     ):
         """
-        xz: (batch, dim, seqlen)
+        Forward pass of the fused Mamba inner function.
+
+        Args:
+            ctx (Any): Autograd context.
+            xz (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+            conv1d_weight (torch.Tensor): Conv1d weights of shape ``(dim, 1, kernel_size)``.
+            conv1d_bias (torch.Tensor | None): Conv1d biases of shape ``(dim,)``.
+            x_proj_weight (torch.Tensor): Projection weights for B, C, delta. Shape ``(delta_rank + 2*dstate, dim)``.
+            delta_proj_weight (torch.Tensor): Projection weights for delta. Shape ``(dim, delta_rank)``.
+            out_proj_weight (torch.Tensor): Output projection weights. Shape ``(d_model, dim)``.
+            out_proj_bias (torch.Tensor | None): Output projection biases. Shape ``(d_model,)``.
+            A (torch.Tensor): State matrix A. Shape ``(dim, dstate)``.
+            B (torch.Tensor, optional): State matrix B. Defaults to None.
+            C (torch.Tensor, optional): State matrix C. Defaults to None.
+            D (torch.Tensor, optional): Skip connection matrix D. Defaults to None.
+            delta_bias (torch.Tensor, optional): Bias for delta. Defaults to None.
+            B_proj_bias (torch.Tensor, optional): Bias for B projection. Defaults to None.
+            C_proj_bias (torch.Tensor, optional): Bias for C projection. Defaults to None.
+            delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to True.
+            checkpoint_lvl (int, optional): Gradient checkpointing level (0 or 1). Defaults to 1.
+            b_rms_weight (torch.Tensor, optional): RMS norm weights for B. Defaults to None.
+            c_rms_weight (torch.Tensor, optional): RMS norm weights for C. Defaults to None.
+            dt_rms_weight (torch.Tensor, optional): RMS norm weights for dt. Defaults to None.
+            b_c_dt_rms_eps (float, optional): RMS norm epsilon. Defaults to 1e-6.
+
+        Returns:
+            torch.Tensor: The projected output tensor.
         """
         assert (
             causal_conv1d_fwd_function is not None
@@ -559,6 +664,16 @@ class MambaInnerFn(torch.autograd.Function):
     @staticmethod
     @custom_bwd
     def backward(ctx, dout):
+        """
+        Backward pass for the fused Mamba inner function.
+
+        Args:
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of the output tensor. Shape ``(batch, seqlen, d_model)``.
+
+        Returns:
+            tuple: Gradients with respect to inputs.
+        """
         # dout: (batch, seqlen, dim)
         assert (
             causal_conv1d_fwd_function is not None
@@ -762,6 +877,34 @@ def mamba_inner_fn(
     dt_rms_weight=None,
     b_c_dt_rms_eps=1e-6,
 ):
+    """
+    Apply the fused Mamba inner function.
+
+    Args:
+        xz (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+        conv1d_weight (torch.Tensor): Conv1d weights of shape ``(dim, 1, kernel_size)``.
+        conv1d_bias (torch.Tensor | None): Conv1d biases of shape ``(dim,)``.
+        x_proj_weight (torch.Tensor): Projection weights for B, C, delta. Shape ``(delta_rank + 2*dstate, dim)``.
+        delta_proj_weight (torch.Tensor): Projection weights for delta. Shape ``(dim, delta_rank)``.
+        out_proj_weight (torch.Tensor): Output projection weights. Shape ``(d_model, dim)``.
+        out_proj_bias (torch.Tensor | None): Output projection biases. Shape ``(d_model,)``.
+        A (torch.Tensor): State matrix A. Shape ``(dim, dstate)``.
+        B (torch.Tensor, optional): State matrix B. Defaults to None.
+        C (torch.Tensor, optional): State matrix C. Defaults to None.
+        D (torch.Tensor, optional): Skip connection matrix D. Defaults to None.
+        delta_bias (torch.Tensor, optional): Bias for delta. Defaults to None.
+        B_proj_bias (torch.Tensor, optional): Bias for B projection. Defaults to None.
+        C_proj_bias (torch.Tensor, optional): Bias for C projection. Defaults to None.
+        delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to True.
+        checkpoint_lvl (int, optional): Gradient checkpointing level (0 or 1). Defaults to 1.
+        b_rms_weight (torch.Tensor, optional): RMS norm weights for B. Defaults to None.
+        c_rms_weight (torch.Tensor, optional): RMS norm weights for C. Defaults to None.
+        dt_rms_weight (torch.Tensor, optional): RMS norm weights for dt. Defaults to None.
+        b_c_dt_rms_eps (float, optional): RMS norm epsilon. Defaults to 1e-6.
+
+    Returns:
+        torch.Tensor: The projected output tensor.
+    """
     return MambaInnerFn.apply(
         xz,
         conv1d_weight,
@@ -803,6 +946,29 @@ def mamba_inner_ref(
     C_proj_bias=None,
     delta_softplus=True,
 ):
+    """
+    Reference (pure PyTorch) implementation of the Mamba inner function.
+
+    Args:
+        xz (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)``.
+        conv1d_weight (torch.Tensor): Conv1d weights of shape ``(dim, 1, kernel_size)``.
+        conv1d_bias (torch.Tensor | None): Conv1d biases of shape ``(dim,)``.
+        x_proj_weight (torch.Tensor): Projection weights for B, C, delta. Shape ``(delta_rank + 2*dstate, dim)``.
+        delta_proj_weight (torch.Tensor): Projection weights for delta. Shape ``(dim, delta_rank)``.
+        out_proj_weight (torch.Tensor): Output projection weights. Shape ``(d_model, dim)``.
+        out_proj_bias (torch.Tensor | None): Output projection biases. Shape ``(d_model,)``.
+        A (torch.Tensor): State matrix A. Shape ``(dim, dstate)``.
+        B (torch.Tensor, optional): State matrix B. Defaults to None.
+        C (torch.Tensor, optional): State matrix C. Defaults to None.
+        D (torch.Tensor, optional): Skip connection matrix D. Defaults to None.
+        delta_bias (torch.Tensor, optional): Bias for delta. Defaults to None.
+        B_proj_bias (torch.Tensor, optional): Bias for B projection. Defaults to None.
+        C_proj_bias (torch.Tensor, optional): Bias for C projection. Defaults to None.
+        delta_softplus (bool, optional): Whether to apply softplus to delta. Defaults to True.
+
+    Returns:
+        torch.Tensor: The projected output tensor.
+    """
     assert (
         causal_conv1d_fn is not None
     ), "causal_conv1d_fn is not available. Please install causal-conv1d."

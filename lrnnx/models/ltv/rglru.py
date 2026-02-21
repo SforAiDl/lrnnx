@@ -29,29 +29,12 @@ class RGLRU(LTV_LRNN):
     """
     RG-LRU block following the Griffin architecture.
 
-    Args
-    ----
-        d_model: Model dimension.
-        d_state: Recurrence state dimension (default 1).
-        d_conv: Temporal convolution kernel size (default 4).
-        expand: Expansion factor for inner dimension (default 1).
-        c: Fixed scalar for recurrent gate scaling (default 8).
-        a_init_range: Tuple (lo, hi) so a is initialised in
-            [lo, hi] in (0, 1).  Default (0.9, 0.999).
-        conv_bias: Whether the Conv1D uses a bias term.
-        bias: Whether Linear projections use bias.
-        use_fast_path: Use the fused CUDA kernel when available.
-        layer_idx: Layer index (for multi-layer caching).
-        device: Device for parameters.
-        dtype: Data type for parameters.
-
-    Example
-    -------
-    >>> model = RGLRU(d_model=64, d_state=1, d_conv=4)
-    >>> x = torch.randn(2, 128, 64)
-    >>> y = model(x)
-    >>> y.shape
-    torch.Size([2, 128, 64])
+    Example:
+        >>> model = RGLRU(d_model=64, d_state=1, d_conv=4)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
     """
 
     def __init__(
@@ -68,6 +51,23 @@ class RGLRU(LTV_LRNN):
         device=None,
         dtype=None,
     ):
+        """
+        Initialize RG-LRU block.
+
+        Args:
+            d_model (int): Model dimension.
+            d_conv (int, optional): Temporal convolution kernel size. Defaults to 4.
+            expand (int, optional): Expansion factor for inner dimension. Defaults to 1.
+            c (float, optional): Fixed scalar for recurrent gate scaling. Defaults to 8.0.
+            a_init_range (Tuple[float, float], optional): Tuple ``(lo, hi)`` so *a* is
+                initialised in ``[lo, hi]`` in ``(0, 1)``. Defaults to ``(0.9, 0.999)``.
+            conv_bias (bool, optional): Whether the Conv1D uses a bias term. Defaults to True.
+            bias (bool, optional): Whether Linear projections use bias. Defaults to False.
+            use_fast_path (bool, optional): Use the fused CUDA kernel when available. Defaults to True.
+            layer_idx (int, optional): Layer index (for multi-layer caching). Defaults to None.
+            device (torch.device, optional): Device for parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+        """
         # RG-LRU handles discretisation internally
         super().__init__(discretization=None)
         factory_kwargs = {"device": device, "dtype": dtype}
@@ -132,16 +132,14 @@ class RGLRU(LTV_LRNN):
         """
         Forward pass through the RG-LRU block.
 
-        Args
-        ----
-            hidden_states: Input tensor (B, L, D).
-            integration_timesteps: *Unused* - kept for LTV interface compat.
-            lengths: *Unused* - kept for interface compatibility.
-            inference_cache: Cache dict for autoregressive generation.
+        Args:
+            hidden_states (torch.Tensor): Input tensor of shape ``(B, L, D)``.
+            integration_timesteps (torch.Tensor, optional): *Unused* - kept for LTV interface compat. Defaults to None.
+            lengths (torch.Tensor, optional): *Unused* - kept for interface compatibility. Defaults to None.
+            inference_cache (Dict[str, Any], optional): Cache dict for autoregressive generation. Defaults to None.
 
-        Returns
-        -------
-            Tensor: Output (B, L, D).
+        Returns:
+            torch.Tensor: Output tensor of shape ``(B, L, D)``.
         """
         batch, seqlen, dim = hidden_states.shape
 
@@ -246,15 +244,16 @@ class RGLRU(LTV_LRNN):
         """
         Single recurrent step for autoregressive inference.
 
-        Args
-        ----
-            hidden_states: (B, 1, D).
-            inference_cache: Must contain conv_state, lrnn_state,
+        Args:
+            hidden_states (torch.Tensor): Input tensor of shape ``(B, 1, D)``.
+            inference_cache (Dict[str, Any]): Must contain conv_state, lrnn_state,
                 and seqlen_offset.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-            Tuple of (output (B, 1, D), updated cache).
+        Returns:
+            tuple[torch.Tensor, Dict[str, Any]]: Tuple containing:
+                - out : Output tensor of shape ``(B, 1, D)``.
+                - inference_cache : Updated cache dictionary.
         """
         conv_state = inference_cache["conv_state"]
         ssm_state = inference_cache["lrnn_state"]
@@ -353,15 +352,14 @@ class RGLRU(LTV_LRNN):
         """
         Allocate cache for autoregressive inference.
 
-        Args
-        ----
-            batch_size: Batch size.
-            max_seqlen: Unused, kept for interface consistency.
-            dtype: Data type for cache tensors.
+        Args:
+            batch_size (int): Batch size.
+            max_seqlen (int): Unused, kept for interface consistency.
+            dtype (torch.dtype, optional): Data type for cache tensors. Defaults to None.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-        -------
-            Dict with conv_state, ssm_state, seqlen_offset.
+        Returns:
+            Dict[str, Any]: Cache dictionary containing "conv_state", "ssm_state", and "seqlen_offset".
         """
         device = self.out_proj.weight.device
         conv_dtype = self.conv1d.weight.dtype if dtype is None else dtype

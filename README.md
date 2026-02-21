@@ -103,8 +103,8 @@ output = model_ltv(x)
 
 ### Inference
 Linear RNNs in torch require special handling during inference, following [mamba](https://github.com/state-spaces/mamba), we also implement CUDA graphs based inference which reduces CPU overheads, this leads to > 10x speedup compared to using a simple for loop over the sequence length.
-The main file is [generation.py](lrnnx/generation.py) which provides a simple API for autoregressive generation with any of the models in our library.
-You can see a simple way to use it in our [benchmarking script](benchmarks/benchmark_inference.py).
+The main file is [generation.py](https://github.com/SforAiDl/lrnnx/blob/main/lrnnx/generation.py) which provides a simple API for autoregressive generation with any of the models in our library.
+You can see a simple way to use it in our [benchmarking script](https://github.com/SforAiDl/lrnnx/blob/main/benchmarks/benchmark_inference.py).
 
 ### Reproducing the Benchmarks from the paper
 This script will run both training and inference benchmarks.
@@ -114,7 +114,7 @@ python -m benchmarks.run_all
 
 ### Architectures
 We also implement some common architectures based on the models in our library, such as a U-Net (inspired from [aTENNuate](https://www.isca-archive.org/interspeech_2025/pei25_interspeech.html) ) and a hierarchical classifier (inspired from [Event-SSM](https://www.computer.org/csdl/proceedings-article/icons/2024/686500a124/22lEawhJ0Va)).
-Additionally, there is a [Language Model](lrnnx/models/language_model.py) architecture inspired from [Mamba](https://github.com/state-spaces/mamba) and [RG-LRU](https://arxiv.org/abs/2402.19427) which can be used for language modeling tasks, with replaceable LRNN and attention layers.
+Additionally, there is a [Language Model](https://github.com/SforAiDl/lrnnx/blob/main/lrnnx/models/language_model.py) architecture inspired from [Mamba](https://github.com/state-spaces/mamba) and [RG-LRU](https://arxiv.org/abs/2402.19427) which can be used for language modeling tasks, with replaceable LRNN and attention layers.
 This can be used as
 ```python
 from lrnnx.models.language_model import LRNNLMHeadModel
@@ -129,12 +129,12 @@ logits = model(input_ids)
 ### Tutorial Overview
 
 Based on the architectures, there are tutorials on how to use them for 2 very popular use cases:
-1. [U-Net Seq2Seq for audio denoising Tutorial](tutorials/notebooks/01_UNet.ipynb)
-2. [Hierarchical Classification Tutorial](tutorials/notebooks/02_hierarchical_classifier.ipynb)
+1. [U-Net Seq2Seq for audio denoising Tutorial](https://github.com/SforAiDl/lrnnx/blob/main/tutorials/notebooks/01_UNet.ipynb)
+2. [Hierarchical Classification Tutorial](https://github.com/SforAiDl/lrnnx/blob/main/tutorials/notebooks/02_hierarchical_classifier.ipynb)
 
 ## Contributing
 
-Please check out our [Contributing Guide](CONTRIBUTING.rst) for details on how to contribute to this project.
+Please check out our [Contributing Guide](https://github.com/SforAiDl/lrnnx/blob/main/CONTRIBUTING.rst) for details on how to contribute to this project.
 
 ## Citation
 
@@ -154,7 +154,7 @@ If you use lrnnx in your research, please cite:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/SforAiDl/lrnnx/blob/main/LICENSE) file for details.
 
 ## Acknowledgments
 

@@ -28,6 +28,18 @@ except ImportError:
 
 
 class S5(LTV_LRNN):
+    """
+    S5 SSM with CUDA kernel acceleration.
+    Reference: https://openreview.net/forum?id=Ai8Hw3AXqks
+
+    Example:
+        >>> model = S5(d_model=64, d_state=64)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
+    """
+
     def __init__(
         self,
         d_model: int,
@@ -41,6 +53,23 @@ class S5(LTV_LRNN):
         device=None,
         dtype=None,
     ):
+        """
+        Initialize S5 model.
+
+        Args:
+            d_model (int): Model dimension.
+            d_state (int): State dimension.
+            discretization (Literal["bilinear", "zoh", "dirac"], optional):
+                Discretization method. Defaults to ``"zoh"``.
+            conj_sym (bool, optional): If True, uses conjugate symmetry for the
+                state space model. Defaults to False.
+            dt_min (float, optional): Minimum value for dt initialization. Defaults to 0.001.
+            dt_max (float, optional): Maximum value for dt initialization. Defaults to 0.1.
+            step_rescale (float, optional): Rescale factor for step size. Defaults to 1.0.
+            use_fast_path (bool, optional): Whether to use fused CUDA kernels. Defaults to True.
+            device (torch.device, optional): Device for parameters. Defaults to None.
+            dtype (torch.dtype, optional): Data type for parameters. Defaults to None.
+        """
         super().__init__(discretization=discretization)
 
         self.d_model = d_model
@@ -83,13 +112,13 @@ class S5(LTV_LRNN):
         Forward pass through S5.
 
         Args:
-            x: Input tensor, shape (B, L, H).
-            integration_timesteps: Not used currently.
-            lengths: Not used currently.
-            inference_cache: Cache for autoregressive generation.
+            x (torch.Tensor): Input tensor of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): Timesteps for async/event-driven discretization. Defaults to None.
+            lengths (torch.Tensor, optional): Lengths of sequences, required for variable-length sequences. Defaults to None.
+            inference_cache (Dict[str, Any], optional): Cache for autoregressive generation. Defaults to None.
 
         Returns:
-            Output tensor, shape (B, L, H).
+            torch.Tensor: Output tensor of shape ``(B, L, H)``.
         """
         if x.dim() != 3:
             raise ValueError(f"Expected 3D input (B, L, H), got {x.dim()}D")
@@ -180,14 +209,16 @@ class S5(LTV_LRNN):
         is used.
 
         Args:
-            x: Input at current timestep, shape (B, 1, H) or (B, H).
-            inference_cache: Cache dictionary containing SSM state and
+            x (torch.Tensor): Input at current timestep, shape ``(B, 1, H)`` or ``(B, H)``.
+            inference_cache (Dict[str, Any]): Cache dictionary containing SSM state and
                 continuous-time parameters.
-            integration_timesteps: Optional per-step integration timesteps
-                for event/async mode, shape (B,) or (B, 1).
+            integration_timesteps (torch.Tensor, optional): Optional per-step integration timesteps
+                for event/async mode, shape ``(B,)`` or ``(B, 1)``. Defaults to None.
 
         Returns:
-            Tuple of (output, updated cache).
+            tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
+                - y : Output tensor at the current timestep.
+                - inference_cache : Updated cache dictionary.
         """
         if x.dim() == 3:
             x = x.squeeze(1)
@@ -272,12 +303,13 @@ class S5(LTV_LRNN):
         simplified_state_update can fuse discretization into the kernel.
 
         Args:
-            batch_size: The batch size for inference.
-            max_seqlen: Maximum sequence length (unused, for interface consistency).
-            dtype: Data type for allocated tensors.
+            batch_size (int): The batch size for inference.
+            max_seqlen (int): Maximum sequence length (unused, for interface consistency).
+            dtype (torch.dtype, optional): Data type for allocated tensors. Defaults to None.
+            **kwargs: Additional keyword arguments.
 
         Returns:
-            Cache dictionary containing SSM state and continuous-time matrices.
+            Dict[str, Any]: Cache dictionary containing SSM state and continuous-time matrices.
         """
         device = self.A.device
         P = self.d_state

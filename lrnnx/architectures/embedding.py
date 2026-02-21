@@ -7,7 +7,13 @@ import torch.nn as nn
 
 
 class PositionEmbedding(nn.Module):
-    """Learned positional embeddings (position indices -> vectors)."""
+    """
+    Learned positional embeddings (position indices -> vectors).
+
+    Args:
+        max_position_embeddings (int): Maximum sequence length supported.
+        embedding_dim (int): Dimension of the embedding vectors.
+    """
 
     def __init__(self, max_position_embeddings: int, embedding_dim: int):
         super().__init__()
@@ -16,6 +22,15 @@ class PositionEmbedding(nn.Module):
         )
 
     def forward(self, positions: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass for positional embeddings.
+
+        Args:
+            positions (torch.Tensor): Tensor of position indices.
+
+        Returns:
+            torch.Tensor: Positional embeddings.
+        """
         return self.position_embedding(positions)
 
 
@@ -24,7 +39,17 @@ class TokenEmbedding(nn.Module):
     Token embedding module. Positional embeddings are optional and explicit.
 
     By default this returns token lookups only. Enable learned positional
-    embeddings with use_position=True and providing max_position_embeddings.
+    embeddings with `use_position=True` and providing `max_position_embeddings`.
+
+    Args:
+        vocab_size (int): Size of the vocabulary.
+        embedding_dim (int): Dimension of the embedding vectors.
+        padding_idx (int, optional): Index for padding tokens. Defaults to None.
+        max_position_embeddings (int, optional): Max sequence length for positional
+            embeddings. Required if ``use_position=True``. Defaults to None.
+        use_position (bool, optional): Whether to include learned positional
+            embeddings. Defaults to False.
+        dropout (float, optional): Dropout probability. Defaults to 0.1.
     """
 
     def __init__(
@@ -59,13 +84,11 @@ class TokenEmbedding(nn.Module):
         """
         Convert token IDs to embeddings.
 
-        Args
-        ----
-            token_ids: Tensor of token IDs [batch_size, seq_len]
+        Args:
+            token_ids (torch.Tensor): Tensor of token IDs of shape ``(batch_size, seq_len)``.
 
-        Returns
-        -------
-            Tensor: [batch_size, seq_len, embedding_dim]
+        Returns:
+            torch.Tensor: Embedded tokens of shape ``(batch_size, seq_len, embedding_dim)``.
         """
         embeddings = self.token_embedding(token_ids)
 

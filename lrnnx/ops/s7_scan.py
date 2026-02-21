@@ -27,6 +27,21 @@ class S7ScanFn(torch.autograd.Function):
         bias=None,
         return_last_state=False,
     ):
+        """
+        Forward pass for the S7 Scan CUDA kernel.
+
+        Args:
+            ctx (Any): Autograd context.
+            u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)`` in float32.
+            A (torch.Tensor): Time-varying state transition tensor of shape ``(batch, dstate, seqlen)`` in float32.
+            B (torch.Tensor): Time-varying input projection tensor of shape ``(batch, dstate, dim, seqlen)`` in float32.
+            C (torch.Tensor): Time-varying output projection tensor of shape ``(batch, dim, dstate, seqlen)`` in float32.
+            bias (torch.Tensor | None, optional): Optional LTV bias tensor of shape ``(batch, dstate, seqlen)`` in float32. Defaults to None.
+            return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
+
+        Returns:
+            torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor, and optionally the last state.
+        """
         batch, dim, seqlen = u.shape
         dstate = A.shape[1]
 
@@ -86,6 +101,16 @@ class S7ScanFn(torch.autograd.Function):
     @staticmethod
     @custom_bwd
     def backward(ctx, dout):
+        """
+        Backward pass for the S7 Scan CUDA kernel.
+
+        Args:
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of the output tensor.
+
+        Returns:
+            tuple: Gradients with respect to inputs ``(du, dA, dB, dC, dbias, None)``.
+        """
         (
             u,
             B,
@@ -155,16 +180,17 @@ def s7_scan_fn(
     S7 scan using CUDA kernel.
 
     Args:
-        u: Input (batch, dim, seqlen) float32
-        A: Time-varying state transition (batch, dstate, seqlen) float32
-        B: Time-varying input projection (batch, dstate, dim, seqlen) float32
-        C: Time-varying output projection (batch, dim, dstate, seqlen) float32
-        bias: Optional LTV bias (batch, dstate, seqlen) float32
-        return_last_state: Whether to return last hidden state
+        u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)`` in float32.
+        A (torch.Tensor): Time-varying state transition tensor of shape ``(batch, dstate, seqlen)`` in float32.
+        B (torch.Tensor): Time-varying input projection tensor of shape ``(batch, dstate, dim, seqlen)`` in float32.
+        C (torch.Tensor): Time-varying output projection tensor of shape ``(batch, dim, dstate, seqlen)`` in float32.
+        bias (torch.Tensor | None, optional): Optional LTV bias tensor of shape ``(batch, dstate, seqlen)`` in float32. Defaults to None.
+        return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
 
     Returns:
-        out: Output (batch, dim, seqlen) float32
-        last_state: If return_last_state=True, (batch, dstate) float32
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - out : Output tensor of shape ``(batch, dim, seqlen)`` in float32.
+            - last_state : If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
     """
     return S7ScanFn.apply(
         u,
@@ -188,16 +214,17 @@ def s7_scan_ref(
     Reference implementation of S7 scan (pure PyTorch).
 
     Args:
-        u: Input (batch, dim, seqlen) float32
-        A: Time-varying state transition (batch, dstate, seqlen) float32
-        B: Time-varying projection (batch, dstate, dim, seqlen) float32
-        C: Time-varying projection (batch, dim, dstate, seqlen) float32
-        bias: Optional LTV bias (batch, dstate, seqlen) float32
-        return_last_state: Whether to return the last hidden state
+        u (torch.Tensor): Input tensor of shape ``(batch, dim, seqlen)`` in float32.
+        A (torch.Tensor): Time-varying state transition tensor of shape ``(batch, dstate, seqlen)`` in float32.
+        B (torch.Tensor): Time-varying projection tensor of shape ``(batch, dstate, dim, seqlen)`` in float32.
+        C (torch.Tensor): Time-varying projection tensor of shape ``(batch, dim, dstate, seqlen)`` in float32.
+        bias (torch.Tensor | None, optional): Optional LTV bias tensor of shape ``(batch, dstate, seqlen)`` in float32. Defaults to None.
+        return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
 
     Returns:
-        out: Output (batch, dim, seqlen) float32
-        last_state: If return_last_state=True, (batch, dstate) float32
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
+            - out : Output tensor of shape ``(batch, dim, seqlen)`` in float32.
+            - last_state : If ``return_last_state=True``, returns the last state of shape ``(batch, dstate)`` in float32.
     """
     dtype_in = u.dtype
     batch, dim, seqlen = u.shape
@@ -247,6 +274,21 @@ class S7InnerFn(torch.autograd.Function):
         d_state,
         base_params,
     ):
+        """
+        Forward pass for the fused S7 inner function.
+
+        Args:
+            ctx (Any): Autograd context.
+            hidden_states (torch.Tensor): Input hidden states of shape ``(batch, seqlen, d_model)``.
+            in_proj_weight (torch.Tensor): Input projection weight matrix.
+            x_proj_weight (torch.Tensor): X projection weight matrix.
+            gate_proj_weight (torch.Tensor): Gate projection weight matrix.
+            d_state (int): State dimension.
+            base_params (torch.Tensor): Base HiPPO initialization parameters.
+
+        Returns:
+            torch.Tensor: The projected and gated output tensor of shape ``(batch, seqlen, d_model)``.
+        """
         batch, seqlen, d_model = hidden_states.shape
 
         if hidden_states.stride(-1) != 1:
@@ -352,6 +394,16 @@ class S7InnerFn(torch.autograd.Function):
     @staticmethod
     @custom_bwd
     def backward(ctx, dout):
+        """
+        Backward pass for the fused S7 inner function.
+
+        Args:
+            ctx (Any): Autograd context.
+            dout (torch.Tensor): Gradient of the output tensor.
+
+        Returns:
+            tuple: Gradients with respect to inputs.
+        """
         (
             hidden_states,
             in_proj_weight,
@@ -491,14 +543,27 @@ class S7InnerFn(torch.autograd.Function):
 
 
 def s7_inner_fn(
-    hidden_states,
-    in_proj_weight,
-    x_proj_weight,
-    gate_proj_weight,
-    d_state,
-    base_params,
-):
-    """Fused S7 inner function using CUDA kernel."""
+    hidden_states: torch.Tensor,
+    in_proj_weight: torch.Tensor,
+    x_proj_weight: torch.Tensor,
+    gate_proj_weight: torch.Tensor,
+    d_state: int,
+    base_params: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Fused S7 inner function using CUDA kernel.
+
+    Args:
+        hidden_states (torch.Tensor): Input hidden states of shape ``(batch, seqlen, d_model)``.
+        in_proj_weight (torch.Tensor): Input projection weight matrix.
+        x_proj_weight (torch.Tensor): X projection weight matrix.
+        gate_proj_weight (torch.Tensor): Gate projection weight matrix.
+        d_state (int): State dimension.
+        base_params (torch.Tensor): Base HiPPO initialization parameters.
+
+    Returns:
+        torch.Tensor: Output tensor of shape ``(batch, seqlen, d_model)``.
+    """
     return S7InnerFn.apply(
         hidden_states,
         in_proj_weight,
@@ -510,14 +575,27 @@ def s7_inner_fn(
 
 
 def s7_inner_ref(
-    hidden_states,
-    in_proj_weight,
-    x_proj_weight,
-    gate_proj_weight,
-    d_state,
-    base_params,
-):
-    """Reference S7 inner function (pure PyTorch)."""
+    hidden_states: torch.Tensor,
+    in_proj_weight: torch.Tensor,
+    x_proj_weight: torch.Tensor,
+    gate_proj_weight: torch.Tensor,
+    d_state: int,
+    base_params: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Reference S7 inner function (pure PyTorch).
+
+    Args:
+        hidden_states (torch.Tensor): Input hidden states of shape ``(batch, seqlen, d_model)``.
+        in_proj_weight (torch.Tensor): Input projection weight matrix.
+        x_proj_weight (torch.Tensor): X projection weight matrix.
+        gate_proj_weight (torch.Tensor): Gate projection weight matrix.
+        d_state (int): State dimension.
+        base_params (torch.Tensor): Base HiPPO initialization parameters.
+
+    Returns:
+        torch.Tensor: Output tensor of shape ``(batch, seqlen, d_model)``.
+    """
     batch, seqlen, d_model = hidden_states.shape
 
     x = F.linear(hidden_states, in_proj_weight)

@@ -1,3 +1,5 @@
+"""Linear Time-Invariant (LTI) LRNN models."""
+
 from lrnnx.models.lti.base import LTI_LRNN
 from lrnnx.models.lti.centaurus import (
     Centaurus,

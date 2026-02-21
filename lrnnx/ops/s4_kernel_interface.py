@@ -38,14 +38,20 @@ vandermonde_transpose_k = get_vandermonde_transpose_kernel()
 
 
 class S4KernelBase(nn.Module):
-    """Base class for S4 kernels - receives parameters from the parent model.
+    """
+    Base class for S4 kernels - receives parameters from the parent model.
 
-    param_config is a dict containing:
-        - Parameter references: A_real, A_imag, B, C, inv_dt, P (nn.Parameters owned by S4/S4D)
-        - Computed scalars:     N, H, channels, rank, repeat
-        - Config flags:         dt_fast, real_transform, imag_transform, dt_transform,
-                                is_real, deterministic, verbose
-        - S4D-only:             disc
+    Args:
+        d_model (int): Model dimension.
+        l_max (int | None): Maximum sequence length.
+        channels (int): Number of channels/heads.
+        param_config (dict): A dictionary containing:
+            
+            * Parameter references: A_real, A_imag, B, C, inv_dt, P (nn.Parameters owned by S4/S4D)
+            * Computed scalars: N, H, channels, rank, repeat
+            * Config flags: dt_fast, real_transform, imag_transform, dt_transform,
+              is_real, deterministic, verbose
+            * S4D-only: disc
     """
 
     def __init__(
@@ -87,14 +93,34 @@ class S4KernelBase(nn.Module):
 
 
 class S4Kernel(S4KernelBase):
-    """SSM kernel for diagonal + low rank (DPLR) state matrices - pure convolution operation."""
+    """
+    SSM kernel for diagonal + low rank (DPLR) state matrices - pure convolution operation.
+
+    Args:
+        d_model (int): Model dimension.
+        l_max (int | None): Maximum sequence length.
+        channels (int): Number of channels/heads.
+        param_config (dict): Configuration dictionary containing parameter references and flags.
+    """
 
     def __init__(self, d_model, l_max, channels, param_config):
         super().__init__(d_model, l_max, channels, param_config)
         self.register_buffer("l_kernel", torch.tensor(0))
 
     def forward(self, state=None, rate=1.0, L=None):
-        """Compute SSM convolution kernel - the core operation."""
+        """
+        Compute SSM convolution kernel - the core operation.
+
+        Args:
+            state (torch.Tensor, optional): State tensor. Defaults to None.
+            rate (float, optional): Sampling rate. Defaults to 1.0.
+            L (int, optional): Sequence length. Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - k_B : Convolution kernel.
+                - k_state : Kernel state, if state is provided.
+        """
         # Initialize C~ if necessary
         if (
             self.l_kernel.item() == 0
@@ -267,6 +293,7 @@ class S4Kernel(S4KernelBase):
 
     @torch.no_grad()
     def double_length(self):
+        """Double the sequence length representation."""
         self._setup_C(2 * self.l_kernel)
 
     @torch.no_grad()
@@ -425,7 +452,15 @@ class S4Kernel(S4KernelBase):
             )
 
     def default_state(self, *batch_shape):
-        """Create default state."""
+        """
+        Create default state.
+
+        Args:
+            *batch_shape: Variable length argument list for batch dimensions.
+
+        Returns:
+            torch.Tensor: A zero-initialized state tensor.
+        """
         C = _r2c(self.C)
         N = C.size(-1)
         H = C.size(-2)
@@ -444,7 +479,18 @@ class S4Kernel(S4KernelBase):
         return state
 
     def step(self, u, state):
-        """Perform single step."""
+        """
+        Perform single step.
+
+        Args:
+            u (torch.Tensor): Input tensor.
+            state (torch.Tensor): Current state tensor.
+
+        Returns:
+            A tuple containing:
+                - y.real (torch.Tensor): Output tensor.
+                - new_state (torch.Tensor): Updated state tensor.
+        """
         if self._step_mode == "linear":
             new_state = self._step_state_linear(u, state)
         else:
@@ -453,7 +499,16 @@ class S4Kernel(S4KernelBase):
         return y.real, new_state
 
     def forward_state(self, u, state):
-        """Forward the state through a sequence."""
+        """
+        Forward the state through a sequence.
+
+        Args:
+            u (torch.Tensor): Input sequence tensor of shape ``(B, H, L)``.
+            state (torch.Tensor): State tensor of shape ``(B, H, N)``.
+
+        Returns:
+            torch.Tensor: The updated state tensor.
+        """
         dA, dB = self._setup_state()
 
         conj = state.size(-1) != dA.size(-1)
@@ -471,14 +526,35 @@ class S4Kernel(S4KernelBase):
 
 
 class S4DKernel(S4KernelBase):
-    """SSM kernel using diagonal state matrix (S4D model) - pure convolution operation."""
+    """
+    SSM kernel using diagonal state matrix (S4D model) - pure convolution operation.
+
+    Args:
+        d_model (int): Model dimension.
+        l_max (int | None): Maximum sequence length.
+        channels (int): Number of channels/heads.
+        param_config (dict): Configuration dictionary containing parameter references and flags,
+            including the S4D-specific 'disc' key.
+    """
 
     def __init__(self, d_model, l_max, channels, param_config):
         self.disc = param_config.get("disc", "zoh")
         super().__init__(d_model, l_max, channels, param_config)
 
     def forward(self, L, state=None, rate=1.0):
-        """Compute SSM convolution kernel - the core operation."""
+        """
+        Compute SSM convolution kernel - the core operation.
+
+        Args:
+            L (int): Sequence length.
+            state (torch.Tensor, optional): State tensor. Defaults to None.
+            rate (float, optional): Sampling rate. Defaults to 1.0.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - K : Convolution kernel.
+                - K_state : Kernel state, if state is provided.
+        """
         # Process parameters
         dt, A, B, C, dtA = process_ssm_params(
             self.A_real,
@@ -556,7 +632,15 @@ class S4DKernel(S4KernelBase):
         self.dC = C
 
     def default_state(self, *batch_shape):
-        """Create default state."""
+        """
+        Create default state.
+
+        Args:
+            *batch_shape: Variable length argument list for batch dimensions.
+
+        Returns:
+            torch.Tensor: A zero-initialized state tensor.
+        """
         C = _r2c(self.C)
         # For diagonal S4D, we don't need to double N - state is just (H, N)
         state = torch.zeros(
@@ -565,7 +649,18 @@ class S4DKernel(S4KernelBase):
         return state
 
     def step(self, u, state):
-        """Single step operation."""
+        """
+        Single step operation.
+
+        Args:
+            u (torch.Tensor): Input tensor of shape ``(B, H)``.
+            state (torch.Tensor): Current state tensor of shape ``(B, H, N)``.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - y.real : Output tensor (scaled by 2).
+                - next_state : Updated state tensor.
+        """
         next_state = contract(
             "h n, b h n -> b h n", self.dA, state
         ) + contract("h n, b h -> b h n", self.dB, u)
@@ -573,7 +668,16 @@ class S4DKernel(S4KernelBase):
         return 2 * y.real, next_state
 
     def forward_state(self, u, state):
-        """Pass state forward through sequence."""
+        """
+        Pass state forward through sequence.
+
+        Args:
+            u (torch.Tensor): Input sequence tensor of shape ``(B, H, L)``.
+            state (torch.Tensor): Initial state tensor of shape ``(B, H, N)``.
+
+        Returns:
+            torch.Tensor: The updated state tensor.
+        """
         self._setup_step()
         AL = self.dA ** u.size(-1)
         u = u.flip(-1).to(self.dA).contiguous()
