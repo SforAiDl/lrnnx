@@ -19,7 +19,7 @@ autodoc_mock_imports = [
 
 # -- Project information --
 project = 'lrnnx'
-copyright = '2026, SforAiDl'
+copyright = '2026, SAiDl'
 author = 'Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
 version = '1.0.0'
 release = '1.0.0'
@@ -156,6 +156,17 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
         del lines[idx]
 
 
+# Hide dataclass fields that are already documented via :ivar: in the class docstring
+_CUDA_GRAPH_SKIP = {'graph', 'x_buf', 'y_buf', 'state_buf', 'mempool', 'batch_size', 'dt_buf'}
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    """Skip CUDAGraphStepCache dataclass fields (documented via :ivar: instead)."""
+    if name in _CUDA_GRAPH_SKIP:
+        return True
+    return None
+
+
 def setup(app):
     app.connect('autodoc-process-signature', autodoc_process_signature)
     app.connect('autodoc-process-docstring', autodoc_process_docstring)
+    app.connect('autodoc-skip-member', autodoc_skip_member)
