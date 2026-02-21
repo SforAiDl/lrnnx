@@ -4,8 +4,14 @@
 import os
 import sys
 import re
+import tomllib
 # Add project root to Python path
 sys.path.insert(0, os.path.abspath('../..'))
+
+# Read version dynamically from pyproject.toml
+with open(os.path.abspath('../../pyproject.toml'), 'rb') as f:
+    _pyproject = tomllib.load(f)
+_version = _pyproject['project']['version']
 
 # -- Mock all external dependencies --
 autodoc_mock_imports = [
@@ -21,8 +27,8 @@ autodoc_mock_imports = [
 project = 'lrnnx'
 copyright = '2026, SAiDl'
 author = 'Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
-version = '1.0.0'
-release = '1.0.0'
+version = _version
+release = _version
 
 # -- General configuration --
 extensions = [
@@ -40,8 +46,15 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- HTML output options --
 html_theme = 'furo'  # Modern theme with icon support
+html_static_path = ['_static']
+html_js_files = ['default-light.js']
 
 html_theme_options = {
+    # Force light mode as default (user can still toggle to dark)
+    "light_css_variables": {
+        "color-brand-primary": "#2962ff",
+        "color-brand-content": "#2962ff",
+    },
     # Add icons to top-right navbar
     "top_of_page_button": "edit",
     "source_repository": "https://github.com/SforAiDl/lrnnx/",
