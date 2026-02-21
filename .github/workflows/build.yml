@@ -1,17 +1,20 @@
 name: Wheel Build
+
 on:
   workflow_dispatch:
   push:
     branches:
       - ci
+
 jobs:
   build-wheel:
     name: Build (torch${{ matrix.config.torch_version }}+${{ matrix.config.cuda_tag }}+py${{ matrix.python-version }})
     runs-on: ubuntu-22.04
+
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10", "3.11", "3.12"]
         config:
           - torch_version: "2.10.0"
             cuda_version: "13.0.0"
@@ -31,6 +34,7 @@ jobs:
           - torch_version: "2.7.1"
             cuda_version: "12.8.1"
             cuda_tag: "cu128"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,7 +48,6 @@ jobs:
 
       - name: Install CUDA ${{ matrix.config.cuda_version }}
         uses: Jimver/cuda-toolkit@v0.2.30
-        id: cuda-toolkit
         with:
           cuda: "${{ matrix.config.cuda_version }}"
           linux-local-args: '["--toolkit"]'
@@ -53,17 +56,28 @@ jobs:
       - name: Install PyTorch & Build Dependencies
         run: |
           pip install --upgrade pip
-          pip install setuptools==68.1.0 ninja packaging wheel
-          pip install torch==${{ matrix.config.torch_version }} --index-url https://download.pytorch.org/whl/${{ matrix.config.cuda_tag }}
+          pip install setuptools==68.1.0 ninja packaging wheel numpy
+          pip install torch==${{ matrix.config.torch_version }} \
+            --index-url https://download.pytorch.org/whl/${{ matrix.config.cuda_tag }}
 
       - name: Build Wheel
         env:
           MAX_JOBS: 2
-          TORCH_CUDA_ARCH_LIST: "7.0 7.5 8.0 8.6 8.9 9.0+PTX"
         run: |
           export PATH=/usr/local/cuda/bin:$PATH
+
+          if [[ "${{ matrix.config.cuda_version }}" == 13.* ]]; then
+            export TORCH_CUDA_ARCH_LIST="8.0 8.6 8.9 9.0+PTX"
+          else
+            export TORCH_CUDA_ARCH_LIST="7.5 8.0 8.6 8.9 9.0+PTX"
+          fi
+
           LOCAL_TAG="+${{ matrix.config.cuda_tag }}torch${{ matrix.config.torch_version }}"
-          timeout 5h python setup.py egg_info --tag-build="$LOCAL_TAG" bdist_wheel --dist-dir=dist
+          timeout 5h python setup.py egg_info \
+            --tag-build="$LOCAL_TAG" \
+            bdist_wheel \
+            --dist-dir=dist
+
           ls -lh dist/
 
       - name: Upload Wheel Artifact
@@ -78,6 +92,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: build-wheel
     if: always()
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
