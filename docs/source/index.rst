@@ -1,12 +1,3 @@
-lrnnx
-=====
-
-.. raw:: html
-
-   <p align="center">
-     <a href="https://github.com/SforAiDl/lrnnx"><img src="https://img.shields.io/badge/GitHub-lrnnx-181717?logo=github" alt="GitHub"></a>
-   </p>
-
 .. include:: ../../README.md
    :parser: myst_parser.sphinx_
 

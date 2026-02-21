@@ -25,7 +25,7 @@ autodoc_mock_imports = [
 
 # -- Project information --
 project = 'lrnnx'
-copyright = '2026, SAiDl'
+copyright = '2026, SAiDL'
 author = 'Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
 version = _version
 release = _version
