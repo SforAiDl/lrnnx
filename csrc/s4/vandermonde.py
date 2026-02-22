@@ -1,5 +1,4 @@
 import torch
-
 from structured_kernels import vand_log_mult_sym_bwd, vand_log_mult_sym_fwd
 
 
@@ -50,4 +49,4 @@ class LogVandMultiplySymmetric(torch.autograd.Function):
 if vand_log_mult_sym_fwd and vand_log_mult_sym_bwd is not None:
     log_vandermonde_fast = LogVandMultiplySymmetric.apply
 else:
-    log_vandermonde_fast = None
+    log_vandermonde_fast = None  # type: ignore[assignment]

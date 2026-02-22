@@ -17,12 +17,12 @@ from lrnnx.ops.rglru_scan import rglru_inner_fn, rglru_scan_fn
 try:
     from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
 except ImportError:
-    causal_conv1d_fn, causal_conv1d_update = None, None
+    causal_conv1d_fn, causal_conv1d_update = None, None  # type: ignore[assignment]
 
 try:
     from lrnnx.ops.triton.selective_state_update import selective_state_update
 except ImportError:
-    selective_state_update = None
+    selective_state_update = None  # type: ignore[assignment]
 
 
 class RGLRU(LTV_LRNN):
@@ -115,7 +115,7 @@ class RGLRU(LTV_LRNN):
             self.d_inner, self.dstate, **factory_kwargs
         )
         self.a_log = nn.Parameter(torch.log(a_init))
-        self.a_log._no_weight_decay = True
+        self.a_log._no_weight_decay = True  # type: ignore[attr-defined]
 
         # Output projection
         self.out_proj = nn.Linear(
@@ -226,16 +226,16 @@ class RGLRU(LTV_LRNN):
             )
 
             if ssm_state is not None:
-                y, last_state = y
+                y, last_state = y  # type: ignore[assignment]
                 ssm_state.copy_(last_state)
 
-            y = rearrange(y, "b d l -> b l d")
+            y = rearrange(y, "b d l -> b l d")  # type: ignore[assignment]
 
             # Merge streams and project out
             out = self.out_proj(gate * y)
         return out
 
-    def step(
+    def step(  # type: ignore[override]
         self,
         hidden_states: Tensor,
         inference_cache: Dict[str, Any],

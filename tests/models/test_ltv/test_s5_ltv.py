@@ -8,12 +8,7 @@ import torch
 
 from lrnnx.models.ltv import S5
 from lrnnx.ops.simplified_scan import s5_inner_fn, s5_inner_ref
-from lrnnx.utils.init import (
-    init_CV,
-    init_log_steps,
-    init_VinvB,
-    make_DPLR_HiPPO,
-)
+from lrnnx.utils.init import init_CV, init_log_steps, init_VinvB, make_DPLR_HiPPO
 
 BATCH_SIZE = 4
 SEQ_LENGTHS = [16, 64, 128, 256, 512, 1024, 2048, 4096]

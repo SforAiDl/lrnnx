@@ -5,11 +5,11 @@ This module exposes 2 levels of the scan similar to Mamba.
 
 from __future__ import annotations
 
+import selective_scan_cuda
 import torch
 import torch.nn.functional as F
 from einops import rearrange
 
-import selective_scan_cuda
 from lrnnx.ops.torch import custom_bwd, custom_fwd
 
 

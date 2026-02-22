@@ -6,12 +6,7 @@ import pytest
 import torch
 from torch import einsum
 
-from lrnnx.models.lti import (
-    CentaurusDWS,
-    CentaurusFull,
-    CentaurusNeck,
-    CentaurusPWNeck,
-)
+from lrnnx.models.lti import CentaurusDWS, CentaurusFull, CentaurusNeck, CentaurusPWNeck
 
 RTOL = 3e-3
 ATOL = 5e-3

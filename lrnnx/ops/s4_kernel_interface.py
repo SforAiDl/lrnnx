@@ -46,7 +46,7 @@ class S4KernelBase(nn.Module):
         l_max (int | None): Maximum sequence length.
         channels (int): Number of channels/heads.
         param_config (dict): A dictionary containing:
-            
+
             * Parameter references: A_real, A_imag, B, C, inv_dt, P (nn.Parameters owned by S4/S4D)
             * Computed scalars: N, H, channels, rank, repeat
             * Config flags: dt_fast, real_transform, imag_transform, dt_transform,

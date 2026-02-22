@@ -5,11 +5,10 @@ This module exposes 2 levels of the scan similar to Mamba.
 
 from __future__ import annotations
 
+import selective_scan_cuda
 import torch
 import torch.nn.functional as F
 from einops import rearrange
-
-import selective_scan_cuda
 
 try:
     from causal_conv1d import causal_conv1d_fn
@@ -49,7 +48,7 @@ class RGLRUScanFn(torch.autograd.Function):
             delta (torch.Tensor): Pre-computed exponent of shape ``(batch, dim, seqlen)`` in float32.
             A (torch.Tensor): Learnable recurrence base in (0, 1), shape ``(dim, dstate)``.
             return_last_state (bool, optional): Whether to return the last hidden state. Defaults to False.
-        
+
         Returns:
             torch.Tensor | tuple[torch.Tensor, torch.Tensor]: The output tensor, and optionally the last state.
         """

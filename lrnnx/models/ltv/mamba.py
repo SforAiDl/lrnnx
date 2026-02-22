@@ -14,12 +14,12 @@ from lrnnx.ops.selective_scan import mamba_inner_fn, selective_scan_fn
 try:
     from causal_conv1d import causal_conv1d_fn, causal_conv1d_update
 except ImportError:
-    causal_conv1d_fn, causal_conv1d_update = None, None
+    causal_conv1d_fn, causal_conv1d_update = None, None  # type: ignore[assignment]
 
 try:
     from lrnnx.ops.triton.selective_state_update import selective_state_update
 except ImportError:
-    selective_state_update = None
+    selective_state_update = None  # type: ignore[assignment]
 
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -303,7 +303,7 @@ class Mamba(LTV_LRNN):
                 dtA = repeat(
                     self.dtA_proj.bias, "d -> b d l", b=batch, l=seqlen
                 )
-                dtA = integration_timesteps.unsqueeze(1) * F.softplus(dtA)
+                dtA = integration_timesteps.unsqueeze(1) * F.softplus(dtA)  # type: ignore[union-attr]
 
                 # apply softplus to dt (with bias) for B discretization
                 dt = F.softplus(dt + self.dt_proj.bias.float()[:, None])
@@ -426,9 +426,9 @@ class Mamba(LTV_LRNN):
             # compute dtA from dtA_proj bias scaled by integration timesteps
             dtA = self.dtA_proj.bias.expand(x.shape[0], -1)
             timestep = (
-                integration_timesteps.view(-1, 1)
-                if integration_timesteps.dim() > 1
-                else integration_timesteps.unsqueeze(-1)
+                integration_timesteps.view(-1, 1)  # type: ignore[union-attr]
+                if integration_timesteps.dim() > 1  # type: ignore[union-attr]
+                else integration_timesteps.unsqueeze(-1)  # type: ignore[union-attr]
             )
             deltaA = timestep * F.softplus(dtA)
 

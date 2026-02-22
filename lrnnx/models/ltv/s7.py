@@ -18,7 +18,7 @@ from lrnnx.utils.init import make_DPLR_HiPPO
 try:
     from lrnnx.ops.triton.selective_state_update import selective_state_update
 except ImportError:
-    selective_state_update = None
+    selective_state_update = None  # type: ignore[assignment]
 
 
 class S7(LTV_LRNN):
@@ -185,15 +185,15 @@ class S7(LTV_LRNN):
             y = s7_scan_fn(u, A, B, C, bias)
             y = y + D_tv * u
 
-            y = rearrange(y, "b h l -> b l h")
-            gate = torch.sigmoid(self.gate_proj(F.gelu(y)))
+            y = rearrange(y, "b h l -> b l h")  # type: ignore[assignment]
+            gate = torch.sigmoid(self.gate_proj(F.gelu(y)))  # type: ignore[arg-type]
             y = gate * y
 
             out = y + hidden_states
 
         return out
 
-    def step(
+    def step(  # type: ignore[override]
         self,
         hidden_states: Tensor,
         inference_cache: Dict[str, Any],

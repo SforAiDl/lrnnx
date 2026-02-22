@@ -2,52 +2,69 @@
 # Using Furo theme with native navbar icon support
 
 import os
-import sys
 import re
+import sys
 import tomllib
+
 # Add project root to Python path
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath("../.."))
 
 # Read version dynamically from pyproject.toml
-with open(os.path.abspath('../../pyproject.toml'), 'rb') as f:
+with open(os.path.abspath("../../pyproject.toml"), "rb") as f:
     _pyproject = tomllib.load(f)
-_version = _pyproject['project']['version']
+_version = _pyproject["project"]["version"]
 
 # -- Mock all external dependencies --
 autodoc_mock_imports = [
-    'torch', 'torch.nn', 'torch.nn.functional', 'torch.utils',
-    'torch.utils.checkpoint', 'torch.cuda', 'torch.autograd',
-    'torch.distributed', 'numpy', 'scipy', 'einops',
-    'causal_conv1d', 'mamba_ssm', 'selective_scan_cuda',
-    'triton', 'triton.language', 'opt_einsum', 'pscan',
-    'flash_attn', 'cuda', 'cupy','simplified_scan_cuda'
+    "torch",
+    "torch.nn",
+    "torch.nn.functional",
+    "torch.utils",
+    "torch.utils.checkpoint",
+    "torch.cuda",
+    "torch.autograd",
+    "torch.distributed",
+    "numpy",
+    "scipy",
+    "einops",
+    "causal_conv1d",
+    "mamba_ssm",
+    "selective_scan_cuda",
+    "triton",
+    "triton.language",
+    "opt_einsum",
+    "pscan",
+    "flash_attn",
+    "cuda",
+    "cupy",
+    "simplified_scan_cuda",
 ]
 
 # -- Project information --
-project = 'lrnnx'
-copyright = '2026, SAiDL'
-author = 'Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda'
+project = "lrnnx"
+copyright = "2026, SAiDL"
+author = "Karan Bania, Soham Kalburgi, Manit Tanwar, Dhruthi, Aditya Nagarsekar, Harshvardhan Mestha, Naman Chibber, Raj Deshmukh, Anish Sathyanarayanan, Aarush Rathore, Pratham Chheda"
 version = _version
 release = _version
 
 # -- General configuration --
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
-    'myst_parser',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
+    "myst_parser",
 ]
 
 myst_enable_extensions = ["colon_fence"]
 
-templates_path = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+templates_path = ["_templates"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- HTML output options --
-html_theme = 'furo'  # Modern theme with icon support
-html_static_path = ['_static']
-html_js_files = ['default-light.js']
+html_theme = "furo"  # Modern theme with icon support
+html_static_path = ["_static"]
+html_js_files = ["default-light.js"]
 
 html_theme_options = {
     # Force light mode as default (user can still toggle to dark)
@@ -60,7 +77,6 @@ html_theme_options = {
     "source_repository": "https://github.com/SforAiDl/lrnnx/",
     "source_branch": "main",
     "source_directory": "docs/source/",
-    
     # Add icon links in header
     "footer_icons": [
         {
@@ -88,10 +104,10 @@ html_theme_options = {
 
 # -- Autodoc options --
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'undoc-members': True,
-    'show-inheritance': True,
+    "members": True,
+    "member-order": "bysource",
+    "undoc-members": True,
+    "show-inheritance": True,
 }
 
 # -- Napoleon options --
@@ -101,28 +117,33 @@ napoleon_include_init_with_doc = True
 
 # -- Intersphinx mapping --
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'torch': ('https://pytorch.org/docs/stable/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
 }
 
 # Remove module names for cleaner display
 add_module_names = False
 
-def autodoc_process_signature(app, what, name, obj, options, signature, return_annotation):
+
+def autodoc_process_signature(
+    app, what, name, obj, options, signature, return_annotation
+):
     """Remove *args and **kwargs (and variants like **mixer_kwargs) from autodoc signatures."""
     if signature:
         # Remove **kwargs, **mixer_kwargs, **layer_args, etc. (with optional type annotation)
-        signature = re.sub(r',?\s*\*\*\w+', '', signature)
+        signature = re.sub(r",?\s*\*\*\w+", "", signature)
         # Remove *args (with optional type annotation)
-        signature = re.sub(r',?\s*\*args\b[^,)]*', '', signature)
+        signature = re.sub(r",?\s*\*args\b[^,)]*", "", signature)
         # Clean up leftover formatting
-        signature = re.sub(r'\(\s*,', '(', signature)
-        signature = re.sub(r',\s*\)', ')', signature)
+        signature = re.sub(r"\(\s*,", "(", signature)
+        signature = re.sub(r",\s*\)", ")", signature)
         # Resolve np alias so intersphinx can link numpy.ndarray
-        signature = re.sub(r'\bnp\.ndarray\b', 'numpy.ndarray', signature)
+        signature = re.sub(r"\bnp\.ndarray\b", "numpy.ndarray", signature)
     if return_annotation:
-        return_annotation = re.sub(r'\bnp\.ndarray\b', 'numpy.ndarray', return_annotation)
+        return_annotation = re.sub(
+            r"\bnp\.ndarray\b", "numpy.ndarray", return_annotation
+        )
     return signature, return_annotation
 
 
@@ -139,15 +160,16 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
         #   :param kwargs: ...  /  :param mixer_kwargs: ...
         #   :type \*\*kwargs: ...  /  :type kwargs: ...
         #   :keyword kwargs: ...
-        is_param_line = bool(re.match(
-            r'^:(param|type|keyword)\s+(\\?\*\\?\*\s*\w+|(\w*kwargs|args))\s*:', stripped
-        ))
+        is_param_line = bool(
+            re.match(
+                r"^:(param|type|keyword)\s+(\\?\*\\?\*\s*\w+|(\w*kwargs|args))\s*:",
+                stripped,
+            )
+        )
 
         # Pattern for Google/NumPy style:
         #   **kwargs: ...  /  *args: ...  /  **mixer_kwargs: ...  /  **layer_args: ...
-        is_raw_line = bool(re.match(
-            r'^\*{1,2}\w+\s*[\(:]', stripped
-        ))
+        is_raw_line = bool(re.match(r"^\*{1,2}\w+\s*[\(:]", stripped))
 
         if is_param_line or is_raw_line:
             indices_to_remove.append(i)
@@ -157,7 +179,10 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
                 next_line = lines[j]
                 if not next_line.strip():
                     break
-                if re.match(r'^:', next_line.strip()) or not next_line[0:1].isspace():
+                if (
+                    re.match(r"^:", next_line.strip())
+                    or not next_line[0:1].isspace()
+                ):
                     break
                 indices_to_remove.append(j)
                 j += 1
@@ -170,7 +195,16 @@ def autodoc_process_docstring(app, what, name, obj, options, lines):
 
 
 # Hide dataclass fields that are already documented via :ivar: in the class docstring
-_CUDA_GRAPH_SKIP = {'graph', 'x_buf', 'y_buf', 'state_buf', 'mempool', 'batch_size', 'dt_buf'}
+_CUDA_GRAPH_SKIP = {
+    "graph",
+    "x_buf",
+    "y_buf",
+    "state_buf",
+    "mempool",
+    "batch_size",
+    "dt_buf",
+}
+
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
     """Skip CUDAGraphStepCache dataclass fields (documented via :ivar: instead)."""
@@ -180,6 +214,6 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
 
 def setup(app):
-    app.connect('autodoc-process-signature', autodoc_process_signature)
-    app.connect('autodoc-process-docstring', autodoc_process_docstring)
-    app.connect('autodoc-skip-member', autodoc_skip_member)
+    app.connect("autodoc-process-signature", autodoc_process_signature)
+    app.connect("autodoc-process-docstring", autodoc_process_docstring)
+    app.connect("autodoc-skip-member", autodoc_skip_member)

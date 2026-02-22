@@ -145,9 +145,7 @@ if CUDA_HOME is not None:
         ),
     ]
 else:
-    print(
-        "CUDA_HOME not found. Skipping CUDA extension build."
-    )
+    print("CUDA_HOME not found. Skipping CUDA extension build.")
 
 setup(
     # loads from pyproject.toml

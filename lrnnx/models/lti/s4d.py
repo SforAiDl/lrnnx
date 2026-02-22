@@ -311,9 +311,7 @@ class S4D(LTI_LRNN):
                 activate=True,
             )
 
-    def forward(
-        self, x, lengths=None, **kwargs
-    ):  
+    def forward(self, x, lengths=None, **kwargs):
         """
         Forward pass of the S4D block.
 

@@ -1,9 +1,10 @@
 """Linear Recurrent Unit (LRU) based U-Net for sequence tasks."""
 
+from typing import List
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import List
 
 from lrnnx.models.lti.lru import LRU
 

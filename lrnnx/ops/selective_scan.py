@@ -4,11 +4,10 @@ modified from
 https://github.com/state-spaces/mamba/blob/main/mamba_ssm/ops/selective_scan_interface.py
 """
 
+import selective_scan_cuda
 import torch
 import torch.nn.functional as F
 from einops import rearrange, repeat
-
-import selective_scan_cuda
 
 try:
     from causal_conv1d import causal_conv1d_fn

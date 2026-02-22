@@ -22,7 +22,7 @@ from lrnnx.layers.mlp import GatedMLP
 if torch.cuda.is_available():
     from lrnnx.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
 else:
-    RMSNorm, layer_norm_fn, rms_norm_fn = nn.RMSNorm, None, None
+    RMSNorm, layer_norm_fn, rms_norm_fn = nn.RMSNorm, None, None  # type: ignore[assignment, misc]
 
 
 def _get_mixer_class_from_string(mixer_type: str):
@@ -30,7 +30,7 @@ def _get_mixer_class_from_string(mixer_type: str):
     Get mixer class from string name.
 
     Args:
-        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "S6", "S7", 
+        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "S6", "S7",
             "Stream", "Centaurus", "Mamba", "attn").
 
     Returns:
@@ -133,13 +133,13 @@ def create_block(
     )
 
     if d_intermediate == 0:
-        mlp_cls = nn.Identity
+        mlp_cls = nn.Identity  # type: ignore[assignment]
     else:
-        mlp_cls = partial(
+        mlp_cls = partial(  # type: ignore[assignment]
             GatedMLP,
             hidden_features=d_intermediate,
             out_features=d_model,
-            **factory_kwargs,
+            **factory_kwargs,  # type: ignore[arg-type]
         )
 
     block = Block(
@@ -150,7 +150,7 @@ def create_block(
         fused_add_norm=fused_add_norm,
         residual_in_fp32=residual_in_fp32,
     )
-    block.layer_idx = layer_idx
+    block.layer_idx = layer_idx  # type: ignore[assignment]
     return block
 
 
@@ -193,7 +193,7 @@ def _init_weights(
                 # Having just p *= scale would repeatedly scale it down
                 nn.init.kaiming_uniform_(p, a=math.sqrt(5))
                 with torch.no_grad():
-                    p /= math.sqrt(n_residuals_per_layer * n_layer)
+                    p /= math.sqrt(n_residuals_per_layer * n_layer)  # type: ignore[misc]
 
 
 class LRNNModel(nn.Module):
@@ -265,7 +265,7 @@ class LRNNModel(nn.Module):
             mlp_cls = GatedMLP
 
         # embedding layer
-        self.embedding = nn.Embedding(vocab_size, d_model, **factory_kwargs)
+        self.embedding = nn.Embedding(vocab_size, d_model, **factory_kwargs)  # type: ignore[arg-type]
 
         # LRNN layers
         self.layers = nn.ModuleList(
@@ -291,7 +291,7 @@ class LRNNModel(nn.Module):
                     residual_in_fp32=residual_in_fp32,
                     fused_add_norm=fused_add_norm,
                     layer_idx=i,
-                    **factory_kwargs,
+                    **factory_kwargs,  # type: ignore[arg-type]
                 )
                 for i in range(n_layer)
             ]
@@ -394,7 +394,7 @@ class LRNNModel(nn.Module):
             if isinstance(layer.mixer, LTV_LRNN):
                 mixer_out, updated_cache = layer.mixer.step(
                     normed,
-                    layer_cache,
+                    layer_cache,  # type: ignore[arg-type]
                     integration_timesteps=integration_timesteps,
                 )
                 caches[i] = updated_cache
@@ -537,6 +537,7 @@ class LRNNLMHeadModel(nn.Module):
         device (torch.device, optional): Device to place tensors on. Defaults to None.
         dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
     """
+
     def __init__(
         self,
         d_model: int,
@@ -596,12 +597,12 @@ class LRNNLMHeadModel(nn.Module):
             initializer_cfg=initializer_cfg,
             fused_add_norm=fused_add_norm,
             residual_in_fp32=residual_in_fp32,
-            **factory_kwargs,
+            **factory_kwargs,  # type: ignore[arg-type]
         )
 
         # language modeling head
         self.lm_head = nn.Linear(
-            d_model, padded_vocab_size, bias=False, **factory_kwargs
+            d_model, padded_vocab_size, bias=False, **factory_kwargs  # type: ignore[arg-type]
         )
 
         # initialize weights
@@ -653,7 +654,7 @@ class LRNNLMHeadModel(nn.Module):
         input_ids: Tensor,
         caches: Dict,
         integration_timesteps: Optional[Tensor] = None,
-    ) -> namedtuple:
+    ) -> namedtuple:  # type: ignore[valid-type]
         """
         Single-step inference for autoregressive generation.
 
@@ -686,7 +687,7 @@ class LRNNLMHeadModel(nn.Module):
         integration_timesteps: Optional[Tensor] = None,
         lengths: Optional[Tensor] = None,
         **mixer_kwargs,
-    ) -> namedtuple:
+    ) -> namedtuple:  # type: ignore[valid-type]
         """
         Forward pass of the language model.
 

@@ -45,7 +45,7 @@ class CentaurusBase(LTI_LRNN, ABC):
             discretization (Literal["zoh", "bilinear", "dirac", "async"], optional):
                 Discretization method. Defaults to ``"zoh"``.
         """
-        super().__init__(discretization=discretization)
+        super().__init__(discretization=discretization)  # type: ignore[arg-type]
 
         self.discretization = discretization
         self.d_model = d_model
@@ -174,7 +174,7 @@ class CentaurusBase(LTI_LRNN, ABC):
             self._B_bar = B_bar
             self._C_eff = C_eff
 
-    def allocate_inference_cache(
+    def allocate_inference_cache(  # type: ignore[override]
         self,
         batch_size: int,
         max_seqlen: int = 1,
@@ -419,7 +419,7 @@ class CentaurusPWNeck(CentaurusBase):
         )
         self.C = nn.Parameter(C_init)
         # Grouped config: no E; mixing is implicit via flattening
-        self.E = None
+        self.E = None  # type: ignore[assignment]
 
         # Delta per state n, shared across M sub-states
         delta_init = torch.logspace(-3, -1, steps=self.d_state)
@@ -474,7 +474,7 @@ class CentaurusPWNeck(CentaurusBase):
             self._B_bar_flat = B_flat
             self._C_eff_flat = C_eff
 
-    def allocate_inference_cache(
+    def allocate_inference_cache(  # type: ignore[override]
         self,
         batch_size: int,
         max_seqlen: int = 1,
@@ -565,7 +565,7 @@ class Centaurus:
         }
 
         # Pass through extra kwargs safely; CentaurusBase ignores unknowns.
-        return mapping[mode](
+        return mapping[mode](  # type: ignore[abstract]
             d_model=d_model,
             d_state=d_state,
             sub_state_dim=sub_state_dim,

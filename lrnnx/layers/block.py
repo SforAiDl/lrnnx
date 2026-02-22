@@ -11,7 +11,7 @@ from torch import Tensor, nn
 if torch.cuda.is_available():
     from lrnnx.ops.triton.layer_norm import RMSNorm, layer_norm_fn
 else:
-    RMSNorm, layer_norm_fn = nn.RMSNorm, None
+    RMSNorm, layer_norm_fn = nn.RMSNorm, None  # type: ignore[assignment, misc]
 
 
 class Block(nn.Module):
@@ -65,7 +65,7 @@ class Block(nn.Module):
         residual: Optional[Tensor] = None,
         inference_params=None,
         **mixer_kwargs,
-    ) -> tuple[Tensor, Tensor]:
+    ) -> tuple[Tensor, Optional[Tensor]]:
         """
         Pass the input through the encoder layer.
 

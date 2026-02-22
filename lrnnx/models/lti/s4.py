@@ -306,9 +306,7 @@ class S4(LTI_LRNN):
                 activate=True,
             )
 
-    def forward(
-        self, x, lengths=None, **kwargs
-    ):  
+    def forward(self, x, lengths=None, **kwargs):
         """
         Forward pass of the S4 block.
 

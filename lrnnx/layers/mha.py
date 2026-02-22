@@ -60,7 +60,7 @@ class MHA(nn.Module):
     Multi-head self-attention and cross-attention with optional convolution and rotary embeddings.
 
     This implementation supports various attention configurations including:
-    
+
     * Multi-Query Attention (MQA) and Grouped-Query Attention (GQA)
     * Optional 1D convolution for local context
     * Rotary position embeddings
@@ -226,7 +226,7 @@ class MHA(nn.Module):
         Fast path that combines rotary embedding, KV cache update, and attention.
 
         This is an optimized implementation that performs three operations in one step:
-        
+
         1. Apply rotary position embeddings to queries and keys
         2. Update the key-value cache
         3. Compute attention with the updated cache
@@ -344,7 +344,7 @@ class MHA(nn.Module):
         Forward pass of Multi-Head Attention.
 
         Performs the complete attention computation including:
-        
+
         1. QKV projection with optional integrated MLP
         2. Optional 1D convolution for local context
         3. Rotary position embedding (if enabled)

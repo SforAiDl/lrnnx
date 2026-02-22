@@ -12,19 +12,12 @@ from torch.nn import Parameter
 
 from lrnnx.models.ltv.base import LTV_LRNN
 from lrnnx.ops.simplified_scan import s5_inner_fn, simplified_scan_fn
-from lrnnx.utils.init import (
-    init_CV,
-    init_log_steps,
-    init_VinvB,
-    make_DPLR_HiPPO,
-)
+from lrnnx.utils.init import init_CV, init_log_steps, init_VinvB, make_DPLR_HiPPO
 
 try:
-    from lrnnx.ops.triton.simplified_state_update import (
-        simplified_state_update,
-    )
+    from lrnnx.ops.triton.simplified_state_update import simplified_state_update
 except ImportError:
-    simplified_state_update = None
+    simplified_state_update = None  # type: ignore[assignment]
 
 
 class S5(LTV_LRNN):
@@ -183,9 +176,9 @@ class S5(LTV_LRNN):
 
             # Apply conjugate symmetry
             if self.conj_sym:
-                y = 2.0 * y_complex.real
+                y = 2.0 * y_complex.real  # type: ignore[union-attr]
             else:
-                y = y_complex.real
+                y = y_complex.real  # type: ignore[union-attr]
 
             # Skip connection: D * real(u)
             u_real = u.real if u.is_complex() else u
@@ -193,7 +186,7 @@ class S5(LTV_LRNN):
 
         return y.transpose(1, 2).to(x.dtype)
 
-    def step(
+    def step(  # type: ignore[override]
         self,
         x: Tensor,
         inference_cache: Dict[str, Any],

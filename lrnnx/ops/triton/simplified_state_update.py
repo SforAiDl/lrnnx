@@ -67,7 +67,7 @@ def _simplified_state_update_kernel(
     DISCRETIZATION: tl.constexpr,  # 0=bilinear, 1=zoh, 2=dirac
 ):
     """
-    Triton JIT kernel for the simplified state update. 
+    Triton JIT kernel for the simplified state update.
     Each program handles one batch element and a tile of H output dims.
     """
     pid_b = tl.program_id(axis=0)

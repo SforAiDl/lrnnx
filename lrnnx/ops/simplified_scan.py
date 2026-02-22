@@ -5,9 +5,9 @@ This module implements connects model using a CUDA kernel
 
 from __future__ import annotations
 
+import simplified_scan_cuda
 import torch
 
-import simplified_scan_cuda
 from lrnnx.ops.torch import custom_bwd, custom_fwd
 
 
@@ -114,7 +114,7 @@ class SimplifiedScanFn(torch.autograd.Function):
             out[:, -1, 1::2] + 1j * out[:, -1, 0::2]
         )  # (batch, P, dstate)
         if return_last_state:
-            return y, last_state.squeeze(-1)  # (batch, P)
+            return y, last_state.squeeze(-1)  # type: ignore[return-value]  # (batch, P)
 
         return y
 
@@ -230,7 +230,7 @@ def simplified_scan_fn(
         discretization (str, optional): Discretization method ('bilinear', 'zoh', 'dirac'). Defaults to "bilinear".
 
     Returns:
-        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: 
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
             - Complex output tensor of shape ``(batch, H, seqlen)``, dtype=complex64.
             - last_state : If return_last_state=True, returns state of shape ``(batch, P)``, dtype=complex64.
     """
@@ -654,9 +654,9 @@ def s5_inner_ref(
 
     # Apply conjugate symmetry
     if conj_sym:
-        y_real = 2 * y_complex.real
+        y_real = 2 * y_complex.real  # type: ignore[union-attr]
     else:
-        y_real = y_complex.real
+        y_real = y_complex.real  # type: ignore[union-attr]
 
     # Apply skip connection
     u_real = u.real if u.is_complex() else u

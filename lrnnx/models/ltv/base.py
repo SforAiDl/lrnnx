@@ -125,7 +125,7 @@ class LTV_LRNN(LRNN):
         Allocates cache for efficient autoregressive inference.
 
         For LTV models, this typically includes:
-        
+
         * Initial hidden state(s)
         * Any auxiliary states (e.g., convolution state for Mamba)
         * Metadata for tracking sequence position

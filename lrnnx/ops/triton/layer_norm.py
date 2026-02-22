@@ -224,7 +224,9 @@ def config_prune(configs):
     max_block_sz = 1024
     max_num_warps = max_block_sz // warp_size
     try:
-        return [config for config in configs if config.num_warps <= max_num_warps]
+        return [
+            config for config in configs if config.num_warps <= max_num_warps
+        ]
     except TypeError:
         # Bypass for Sphinx documentation builds where Triton is mocked
         return configs
@@ -1262,6 +1264,7 @@ class LayerNormLinearFn(torch.autograd.Function):
     """
     Autograd function for a fused Layer/RMS Normalization followed immediately by a Linear projection.
     """
+
     @staticmethod
     @custom_fwd(device_type="cuda")
     def forward(
