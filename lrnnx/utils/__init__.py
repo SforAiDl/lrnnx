@@ -1,3 +1,5 @@
+"""Utility functions for initialization and generation."""
+
 from lrnnx.utils.generation import capture_graph, generate
 from lrnnx.utils.init import (
     init_CV,

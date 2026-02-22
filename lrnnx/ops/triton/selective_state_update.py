@@ -95,6 +95,9 @@ def _selective_scan_update_kernel(
     BLOCK_SIZE_DSTATE: tl.constexpr,
     DISCRETIZATION: tl.constexpr,
 ):
+    """
+    Triton JIT kernel for the selective state update.
+    """
     pid_m = tl.program_id(axis=0)
     pid_b = tl.program_id(axis=1)
     pid_h = tl.program_id(axis=2)
@@ -313,19 +316,25 @@ def selective_state_update(
     discretization="mamba",
 ):
     """
-    Argument:
-        state: (batch, dim, dstate) or (batch, nheads, dim, dstate)
-        x: (batch, dim) or (batch, nheads, dim)
-        dt: (batch, dim) or (batch, nheads, dim)
-        A: (dim, dstate) or (nheads, dim, dstate)
-        B: (batch, dstate) or (batch, ngroups, dstate)
-        C: (batch, dstate) or (batch, ngroups, dstate)
-        D: (dim,) or (nheads, dim)
-        z: (batch, dim) or (batch, nheads, dim)
-        dt_bias: (dim,) or (nheads, dim)
-        deltaA: (batch, dim) or (batch, nheads, dim) - timestep for A discretization (dtA) in asymmetric mode
-    Return:
-        out: (batch, dim) or (batch, nheads, dim)
+    Triton-accelerated single-step state update for selective state space models.
+
+    Args:
+        state (torch.Tensor): Hidden state of shape ``(batch, dim, dstate)`` or ``(batch, nheads, dim, dstate)``.
+        x (torch.Tensor): Input tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
+        dt (torch.Tensor): Timestep tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
+        A (torch.Tensor): State transition matrix of shape ``(dim, dstate)`` or ``(nheads, dim, dstate)``.
+        B (torch.Tensor): Input projection matrix of shape ``(batch, dstate)`` or ``(batch, ngroups, dstate)``.
+        C (torch.Tensor): Output projection matrix of shape ``(batch, dstate)`` or ``(batch, ngroups, dstate)``.
+        D (torch.Tensor, optional): Skip connection vector of shape ``(dim,)`` or ``(nheads, dim)``. Defaults to None.
+        z (torch.Tensor, optional): Gating tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``. Defaults to None.
+        dt_bias (torch.Tensor, optional): Bias for dt of shape ``(dim,)`` or ``(nheads, dim)``. Defaults to None.
+        dt_softplus (bool, optional): Whether to apply softplus to dt. Defaults to False.
+        deltaA (torch.Tensor, optional): Timestep for A discretization (dtA) in asymmetric mode, shape ``(batch, dim)`` or ``(batch, nheads, dim)``. Defaults to None.
+        state_batch_indices (torch.Tensor, optional): Indices to select states for the batch, shape ``(batch,)``. Defaults to None.
+        discretization (str, optional): Discretization method ('zoh', 'bilinear', 'dirac', 'mamba', 'rglru', 's7'). Defaults to "mamba".
+
+    Returns:
+        torch.Tensor: The output tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
     """
     has_heads = state.dim() > 3
     if state.dim() == 3:
@@ -491,17 +500,24 @@ def selective_state_update_ref(
     discretization="mamba",
 ):
     """
-    Argument:
-        state: (batch, dim, dstate) or (batch, nheads, dim, dstate)
-        x: (batch, dim) or (batch, nheads, dim)
-        dt: (batch, dim) or (batch, nheads, dim)
-        A: (dim, dstate) or (nheads, dim, dstate)
-        B: (batch, dstate) or (batch, ngroups, dstate)
-        C: (batch, dstate) or (batch, ngroups, dstate)
-        D: (dim,) or (nheads, dim)
-        z: (batch, dim) or (batch, nheads, dim)
-        dt_bias: (dim,) or (nheads, dim)        deltaA: (batch, dim) or (batch, nheads, dim) - timestep for A discretization (dtA) in asymmetric mode    Return:
-        out: (batch, dim) or (batch, nheads, dim)
+    Reference (pure PyTorch) implementation of the single-step selective state update.
+
+    Args:
+        state (torch.Tensor): Hidden state of shape ``(batch, dim, dstate)`` or ``(batch, nheads, dim, dstate)``.
+        x (torch.Tensor): Input tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
+        dt (torch.Tensor): Timestep tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
+        A (torch.Tensor): State transition matrix of shape ``(dim, dstate)`` or ``(nheads, dim, dstate)``.
+        B (torch.Tensor): Input projection matrix of shape ``(batch, dstate)`` or ``(batch, ngroups, dstate)``.
+        C (torch.Tensor): Output projection matrix of shape ``(batch, dstate)`` or ``(batch, ngroups, dstate)``.
+        D (torch.Tensor, optional): Skip connection vector of shape ``(dim,)`` or ``(nheads, dim)``. Defaults to None.
+        z (torch.Tensor, optional): Gating tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``. Defaults to None.
+        dt_bias (torch.Tensor, optional): Bias for dt of shape ``(dim,)`` or ``(nheads, dim)``. Defaults to None.
+        dt_softplus (bool, optional): Whether to apply softplus to dt. Defaults to False.
+        deltaA (torch.Tensor, optional): Timestep for A discretization (dtA) in asymmetric mode, shape ``(batch, dim)`` or ``(batch, nheads, dim)``. Defaults to None.
+        discretization (str, optional): Discretization method ('zoh', 'bilinear', 'dirac', 'mamba', 'rglru', 's7'). Defaults to "mamba".
+
+    Returns:
+        torch.Tensor: The output tensor of shape ``(batch, dim)`` or ``(batch, nheads, dim)``.
     """
     has_heads = state.dim() > 3
     if state.dim() == 3:

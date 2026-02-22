@@ -1,3 +1,5 @@
+"""Linear Time-Varying (LTV) LRNN models."""
+
 from lrnnx.models.ltv.base import LTV_LRNN
 from lrnnx.models.ltv.mamba import Mamba
 from lrnnx.models.ltv.rglru import RGLRU

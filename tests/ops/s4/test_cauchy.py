@@ -1,11 +1,7 @@
 import pytest
 import torch
 
-from csrc.s4.cauchy import (
-    cauchy_mult,
-    cauchy_mult_keops,
-    cauchy_mult_torch,
-)
+from csrc.s4.cauchy import cauchy_mult, cauchy_mult_keops, cauchy_mult_torch
 
 
 def generate_data(batch_size, N, L, symmetric=True, device="cuda"):

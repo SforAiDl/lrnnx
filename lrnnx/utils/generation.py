@@ -40,24 +40,25 @@ def _find_state_tensor(cache_dict: dict) -> Tensor:
 
 @dataclass
 class CUDAGraphStepCache:
-    """Holds a captured CUDA graph and the fixed-address buffers it operates on.
+    """
+    Holds a captured CUDA graph and the fixed-address buffers it operates on.
 
-    Create instances via `capture_graph` - not directly.
+    Create instances via ``capture_graph`` - not directly.
 
-    Attributes
-    ----------
-    graph : torch.cuda.CUDAGraph
-        The captured graph.
-    x_buf : Tensor
-        Input buffer (batch, H) - write new data here before replay.
-    y_buf : Tensor
-        Output buffer (batch, H) - read result after replay.
-    state_buf : Tensor
-        Primary hidden-state buffer.
-    mempool : int
-        CUDA graph memory-pool handle (allows sharing across graphs).
-    batch_size : int
-        Batch size the graph was captured with.
+    :ivar graph: The captured CUDA graph.
+    :vartype graph: torch.cuda.CUDAGraph
+    :ivar x_buf: Fixed-address input buffer.
+    :vartype x_buf: torch.Tensor
+    :ivar y_buf: Fixed-address output buffer.
+    :vartype y_buf: torch.Tensor
+    :ivar state_buf: Fixed-address state buffer.
+    :vartype state_buf: torch.Tensor
+    :ivar mempool: CUDA memory pool identifier.
+    :vartype mempool: int
+    :ivar batch_size: Batch size the graph was captured for.
+    :vartype batch_size: int
+    :ivar dt_buf: Integration timestep buffer for event-driven models.
+    :vartype dt_buf: torch.Tensor or None
     """
 
     graph: torch.cuda.CUDAGraph
@@ -81,35 +82,25 @@ def capture_graph(
     device: torch.device | str | None = None,
     n_warmups: int = 3,
 ) -> CUDAGraphStepCache:
-    """Capture the model's single-step recurrence as a CUDA graph.
+    """
+    Capture the model's single-step recurrence as a CUDA graph.
 
     Call this **once** (outside the hot loop) and pass the returned
-    :class:`CUDAGraphStepCache` to :func:`generate` for zero-overhead
-    replay.
+    ``CUDAGraphStepCache`` to ``generate`` for zero-overhead replay.
 
-    Parameters
-    ----------
-    model : LTI_LRNN | LTV_LRNN
-        An lrnnx model on CUDA in eval mode.
-    batch_size : int
-        Batch size to capture for.  Every subsequent generate call
-        must use the same batch size.
-    H : int
-        Model input/output dimension.
-    max_seqlen : int
-        Maximum sequence length (passed to allocate_inference_cache).
-    event_mode : bool
-        If True, capture with an integration_timesteps input buffer
-        so that event-driven timesteps can be supplied at replay time.
-    device : torch.device | str | None
-        CUDA device.  Inferred from model parameters if None.
-    n_warmups : int
-        Number of warm-up iterations before capture (default 3).
+    Args:
+        model (LTI_LRNN | LTV_LRNN): An lrnnx model on CUDA in eval mode.
+        batch_size (int): Batch size to capture for. Every subsequent generate call
+            must use the same batch size.
+        H (int): Model input/output dimension.
+        max_seqlen (int, optional): Maximum sequence length (passed to allocate_inference_cache). Defaults to 1.
+        event_mode (bool, optional): If True, capture with an integration_timesteps input buffer
+            so that event-driven timesteps can be supplied at replay time. Defaults to False.
+        device (torch.device | str | None, optional): CUDA device. Inferred from model parameters if None. Defaults to None.
+        n_warmups (int, optional): Number of warm-up iterations before capture. Defaults to 3.
 
-    Returns
-    -------
-    CUDAGraphStepCache
-        Opaque handle - pass it as graph_cache to :func:`generate`.
+    Returns:
+        CUDAGraphStepCache: Opaque handle - pass it as graph_cache to ``generate``.
     """
     if device is None:
         device = next(model.parameters()).device
@@ -181,32 +172,24 @@ def generate(
     graph_cache: CUDAGraphStepCache | None = None,
     integration_timesteps: Tensor | None = None,
 ) -> Tensor:
-    """Autoregressive generation: feed each output back as the next input.
+    """
+    Autoregressive generation: feed each output back as the next input.
 
-    When *graph_cache* is provided the pre-captured CUDA graph is
+    When ``graph_cache`` is provided the pre-captured CUDA graph is
     **replayed** for every timestep - no re-capture, no extra overhead.
     When None, falls back to a plain Python loop.
 
-    Parameters
-    ----------
-    model : LTI_LRNN | LTV_LRNN
-        An lrnnx model on CUDA in eval mode.
-    x : Tensor
-        Seed input, shape (batch, H).
-    num_steps : int
-        Number of autoregressive steps to generate.
-    graph_cache : CUDAGraphStepCache | None
-        Pre-captured graph from :func:`capture_graph`.
-    integration_timesteps : Tensor | None
-        Integration timestep (batch, 1) for event-driven models,
-        reused at every generated step.  Requires that graph_cache
-        was captured with event_mode=True when using the CUDA-graph
-        path.
+    Args:
+        model (LTI_LRNN | LTV_LRNN): An lrnnx model on CUDA in eval mode.
+        x (torch.Tensor): Seed input, shape ``(batch, H)``.
+        num_steps (int): Number of autoregressive steps to generate.
+        graph_cache (CUDAGraphStepCache | None, optional): Pre-captured graph from ``capture_graph``. Defaults to None.
+        integration_timesteps (torch.Tensor | None, optional): Integration timestep shape ``(batch, 1)`` for event-driven models,
+            reused at every generated step. Requires that graph_cache
+            was captured with event_mode=True when using the CUDA-graph path. Defaults to None.
 
-    Returns
-    -------
-    Tensor
-        Generated output sequence, shape (batch, num_steps, H).
+    Returns:
+        torch.Tensor: Generated output sequence, shape ``(batch, num_steps, H)``.
     """
     if x.dim() != 2:
         raise ValueError(f"Expected x of shape (B, H), got {x.shape}")

@@ -22,7 +22,7 @@ from lrnnx.layers.mlp import GatedMLP
 if torch.cuda.is_available():
     from lrnnx.ops.triton.layer_norm import RMSNorm, layer_norm_fn, rms_norm_fn
 else:
-    RMSNorm, layer_norm_fn, rms_norm_fn = nn.RMSNorm, None, None
+    RMSNorm, layer_norm_fn, rms_norm_fn = nn.RMSNorm, None, None  # type: ignore[assignment, misc]
 
 
 def _get_mixer_class_from_string(mixer_type: str):
@@ -30,10 +30,11 @@ def _get_mixer_class_from_string(mixer_type: str):
     Get mixer class from string name.
 
     Args:
-        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "S6", "S7", "Stream", "Centaurus", "Mamba", "attn")
+        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "S6", "S7",
+            "Stream", "Centaurus", "Mamba", "attn").
 
     Returns:
-        class: The corresponding mixer class
+        type: The corresponding PyTorch neural network class.
     """
     from lrnnx.models.lti.centaurus import Centaurus
     from lrnnx.models.lti.lru import LRU
@@ -86,22 +87,22 @@ def create_block(
     Create a block.
 
     Args:
-        d_model (int): Model dimension
-        d_state (int): State dimension
-        d_intermediate (int): Intermediate dimension for MLP layers (0 to disable MLP)
-        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "attn")
-        mixer_kwargs (dict, optional): Additional arguments for mixer
-        attn_cfg (dict, optional): Configuration for attention layers
-        norm_epsilon (float): Epsilon value for layer normalization
-        rms_norm (bool): Whether to use RMSNorm instead of LayerNorm
-        residual_in_fp32 (bool): Whether to compute residuals in float32
-        fused_add_norm (bool): Whether to use fused add+norm operations
-        layer_idx (int, optional): Index of the current layer
-        device (torch.device, optional): Device to place tensors on
-        dtype (torch.dtype, optional): Data type for tensors
+        d_model (int): Model dimension.
+        d_state (int): State dimension.
+        d_intermediate (int): Intermediate dimension for MLP layers (0 to disable MLP).
+        mixer_type (str): Name of the mixer type (e.g., "LRU", "S5", "attn").
+        mixer_kwargs (dict, optional): Additional arguments for mixer. Defaults to None.
+        attn_cfg (dict, optional): Configuration for attention layers. Defaults to None.
+        norm_epsilon (float, optional): Epsilon value for layer normalization. Defaults to 1e-5.
+        rms_norm (bool, optional): Whether to use RMSNorm instead of LayerNorm. Defaults to False.
+        residual_in_fp32 (bool, optional): Whether to compute residuals in float32. Defaults to False.
+        fused_add_norm (bool, optional): Whether to use fused add+norm operations. Defaults to True.
+        layer_idx (int, optional): Index of the current layer. Defaults to None.
+        device (torch.device, optional): Device to place tensors on. Defaults to None.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
 
     Returns:
-        Block: A configured block module
+        Block: A configured block module.
     """
     if attn_cfg is None:
         attn_cfg = {}
@@ -132,13 +133,13 @@ def create_block(
     )
 
     if d_intermediate == 0:
-        mlp_cls = nn.Identity
+        mlp_cls = nn.Identity  # type: ignore[assignment]
     else:
-        mlp_cls = partial(
+        mlp_cls = partial(  # type: ignore[assignment]
             GatedMLP,
             hidden_features=d_intermediate,
             out_features=d_model,
-            **factory_kwargs,
+            **factory_kwargs,  # type: ignore[arg-type]
         )
 
     block = Block(
@@ -149,7 +150,7 @@ def create_block(
         fused_add_norm=fused_add_norm,
         residual_in_fp32=residual_in_fp32,
     )
-    block.layer_idx = layer_idx
+    block.layer_idx = layer_idx  # type: ignore[assignment]
     return block
 
 
@@ -164,11 +165,11 @@ def _init_weights(
     Initialize weights following GPT-2 scheme.
 
     Args:
-        module (nn.Module): Module to initialize
-        n_layer (int): Number of layers in the model
-        initializer_range (float): Standard deviation for weight initialization
-        rescale_prenorm_residual (bool): Whether to rescale prenorm residual weights
-        n_residuals_per_layer (int): Number of residual connections per layer
+        module (nn.Module): Module to initialize.
+        n_layer (int): Number of layers in the model.
+        initializer_range (float, optional): Standard deviation for weight initialization. Defaults to 0.02.
+        rescale_prenorm_residual (bool, optional): Whether to rescale prenorm residual weights. Defaults to True.
+        n_residuals_per_layer (int, optional): Number of residual connections per layer. Defaults to 1.
     """
     if isinstance(module, nn.Linear):
         if module.bias is not None:
@@ -192,11 +193,34 @@ def _init_weights(
                 # Having just p *= scale would repeatedly scale it down
                 nn.init.kaiming_uniform_(p, a=math.sqrt(5))
                 with torch.no_grad():
-                    p /= math.sqrt(n_residuals_per_layer * n_layer)
+                    p /= math.sqrt(n_residuals_per_layer * n_layer)  # type: ignore[misc]
 
 
 class LRNNModel(nn.Module):
-    """Core LRNN backbone"""
+    """
+    Core LRNN backbone.
+
+    Args:
+        d_model (int): Model dimension.
+        d_state (int): State dimension.
+        n_layer (int): Number of layers in the model.
+        vocab_size (int): Size of the vocabulary.
+        mixer_types (list): List of mixer type names for each layer (e.g., ``["S5", "S7", "attn", ...]``).
+        d_intermediate (int, optional): Intermediate dimension for MLP layers (0 to disable MLP). Defaults to 0.
+        mixer_kwargs (dict, optional): Additional arguments for mixer.
+            Should be a dict mapping mixer type names to their kwargs,
+            e.g., ``{"S5": {"dt_min": 0.001}, "attn": {"num_heads": 8}}``.
+            If a single dict is provided without mixer type keys, it will be applied to all mixers.
+            Defaults to None.
+        mlp_cls (type, optional): MLP class to use. Defaults to None.
+        norm_epsilon (float, optional): Epsilon value for layer normalization. Defaults to 1e-5.
+        rms_norm (bool, optional): Whether to use RMSNorm instead of LayerNorm. Defaults to True.
+        initializer_cfg (dict, optional): Configuration for weight initialization. Defaults to None.
+        fused_add_norm (bool, optional): Whether to use fused add+norm operations. Defaults to True.
+        residual_in_fp32 (bool, optional): Whether to compute residuals in float32. Defaults to False.
+        device (torch.device, optional): Device to place tensors on. Defaults to None.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -216,28 +240,6 @@ class LRNNModel(nn.Module):
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None,
     ) -> None:
-        """
-        Initialize the core LRNN model.
-
-        Args:
-            d_model (int): Model dimension
-            d_state (int): State dimension
-            n_layer (int): Number of layers in the model
-            vocab_size (int): Size of the vocabulary
-            mixer_types (list): List of mixer type names for each layer (e.g., ["S5", "S7", "attn", ...])
-            d_intermediate (int): Intermediate dimension for MLP layers (0 to disable MLP)
-            mixer_kwargs (dict, optional): Additional arguments for mixer.
-                Should be a dict mapping mixer type names to their kwargs,
-                e.g., {"S5": {...}, "S7": {...}, "attn": {...}}
-            mlp_cls (class, optional): MLP class to use
-            norm_epsilon (float): Epsilon value for layer normalization
-            rms_norm (bool): Whether to use RMSNorm instead of LayerNorm
-            initializer_cfg (dict, optional): Configuration for weight initialization
-            fused_add_norm (bool): Whether to use fused add+norm operations
-            residual_in_fp32 (bool): Whether to compute residuals in float32
-            device (torch.device, optional): Device to place tensors on
-            dtype (torch.dtype, optional): Data type for tensors
-        """
         factory_kwargs = {"device": device, "dtype": dtype}
         super().__init__()
 
@@ -263,7 +265,7 @@ class LRNNModel(nn.Module):
             mlp_cls = GatedMLP
 
         # embedding layer
-        self.embedding = nn.Embedding(vocab_size, d_model, **factory_kwargs)
+        self.embedding = nn.Embedding(vocab_size, d_model, **factory_kwargs)  # type: ignore[arg-type]
 
         # LRNN layers
         self.layers = nn.ModuleList(
@@ -289,7 +291,7 @@ class LRNNModel(nn.Module):
                     residual_in_fp32=residual_in_fp32,
                     fused_add_norm=fused_add_norm,
                     layer_idx=i,
-                    **factory_kwargs,
+                    **factory_kwargs,  # type: ignore[arg-type]
                 )
                 for i in range(n_layer)
             ]
@@ -319,16 +321,15 @@ class LRNNModel(nn.Module):
         **kwargs,
     ) -> Dict:
         """
-        Allocate inference cache for all layers.
+        Allocate inference cache for autoregressive generation.
 
         Args:
-            batch_size (int): Batch size for inference
-            max_seqlen (int): Maximum sequence length for inference
-            dtype (torch.dtype, optional): Data type for cache tensors
-            **kwargs: Additional keyword arguments passed to layer cache allocation
+            batch_size (int): Batch size for inference.
+            max_seqlen (int): Maximum sequence length for inference.
+            dtype (torch.dtype, optional): Data type for cache tensors.
 
         Returns:
-            dict: Dictionary mapping layer indices to their allocated caches
+            dict: Dictionary mapping layer indices to their allocated caches.
         """
         cache = {}
         for i, layer in enumerate(self.layers):
@@ -351,12 +352,13 @@ class LRNNModel(nn.Module):
         Single-step inference for autoregressive generation.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape (B, 1) - single token
-            caches (Dict): Dictionary mapping layer indices to their cached states
-            integration_timesteps (Tensor, optional): Integration timesteps for LTV models (shape: B, 1 or B)
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, 1)`` — single token.
+            caches (Dict): Dictionary mapping layer indices to their cached states.
+            integration_timesteps (torch.Tensor, optional): Integration timesteps for LTV models
+                (shape: ``(B, 1)`` or ``(B,)``). Defaults to None.
 
         Returns:
-            Tensor: Hidden states of shape (B, 1, H)
+            torch.Tensor: Hidden states of shape ``(B, 1, d_model)``.
         """
         hidden_states = self.embedding(input_ids)
         residual = None
@@ -392,7 +394,7 @@ class LRNNModel(nn.Module):
             if isinstance(layer.mixer, LTV_LRNN):
                 mixer_out, updated_cache = layer.mixer.step(
                     normed,
-                    layer_cache,
+                    layer_cache,  # type: ignore[arg-type]
                     integration_timesteps=integration_timesteps,
                 )
                 caches[i] = updated_cache
@@ -459,16 +461,18 @@ class LRNNModel(nn.Module):
         **mixer_kwargs,
     ) -> Tensor:
         """
-        Forward pass of the LRNN model.
+        Forward pass of the LRNN backbone.
 
         Args:
-            input_ids (Tensor): Input token IDs of shape (B, L)
-            inference_params (Dict, optional): Parameters for inference mode
-            integration_timesteps (Tensor, optional): Timesteps for LTV models (shape: B, L)
-            lengths (Tensor, optional): Sequence lengths for variable-length sequences (shape: B)
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, L)``.
+            inference_params (Dict, optional): Parameters for inference mode. Defaults to None.
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models
+                (shape: ``(B, L)``). Defaults to None.
+            lengths (torch.Tensor, optional): Sequence lengths for variable-length sequences
+                (shape: ``(B,)``). Defaults to None.
 
         Returns:
-            Tensor: Hidden states of shape (B, L, H)
+            torch.Tensor: Hidden states of shape ``(B, L, d_model)``.
         """
         hidden_states = self.embedding(input_ids)
         residual = None
@@ -511,7 +515,28 @@ class LRNNModel(nn.Module):
 
 
 class LRNNLMHeadModel(nn.Module):
-    """LRNN Language Model with language modeling head."""
+    """
+    LRNN Language Model with a language modeling head.
+
+    Args:
+        d_model (int): Model dimension.
+        d_state (int): State dimension.
+        n_layer (int): Number of layers in the model.
+        vocab_size (int): Size of the vocabulary.
+        mixer_types (list): List of mixer type names for each layer (e.g., ``["S5", "S7", "attn", ...]``).
+        d_intermediate (int, optional): Intermediate dimension for MLP layers (0 to disable MLP). Defaults to 0.
+        mixer_kwargs (dict, optional): Additional arguments for mixer. Defaults to None.
+        mlp_cls (type, optional): MLP class to use. Defaults to None.
+        norm_epsilon (float, optional): Epsilon value for layer normalization. Defaults to 1e-5.
+        rms_norm (bool, optional): Whether to use RMSNorm instead of LayerNorm. Defaults to True.
+        initializer_cfg (dict, optional): Configuration for weight initialization. Defaults to None.
+        fused_add_norm (bool, optional): Whether to use fused add+norm operations. Defaults to True.
+        residual_in_fp32 (bool, optional): Whether to compute residuals in float32. Defaults to False.
+        tie_embeddings (bool, optional): Whether to tie input and output embeddings. Defaults to True.
+        pad_vocab_size_multiple (int, optional): Pad vocabulary size to multiple of this value. Defaults to 8.
+        device (torch.device, optional): Device to place tensors on. Defaults to None.
+        dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
+    """
 
     def __init__(
         self,
@@ -533,31 +558,6 @@ class LRNNLMHeadModel(nn.Module):
         device: Optional[torch.device] = None,
         dtype: Optional[torch.dtype] = None,
     ) -> None:
-        """
-        Initialize the LRNN Language Model with language modeling head.
-
-        Args
-        ----
-            d_model (int): Model dimension
-            d_state (int): State dimension
-            n_layer (int): Number of layers in the model
-            vocab_size (int): Size of the vocabulary
-            mixer_types (list): List of mixer type names for each layer (e.g., ["S5", "S7", "attn", ...])
-            d_intermediate (int): Intermediate dimension for MLP layers (0 to disable MLP)
-            mixer_kwargs (dict, optional): Additional keyword arguments for mixer.
-                Should be a dict mapping mixer type names to their kwargs,
-                e.g., {"S5": {...}, "S7": {...}, "attn": {...}}
-            mlp_cls (class, optional): MLP class to use
-            norm_epsilon (float): Epsilon value for layer normalization
-            rms_norm (bool): Whether to use RMSNorm instead of LayerNorm
-            fused_add_norm (bool): Whether to use fused add+norm operations
-            residual_in_fp32 (bool): Whether to compute residuals in float32
-            tie_embeddings (bool): Whether to tie input and output embeddings
-            pad_vocab_size_multiple (int): Pad vocabulary size to multiple of this value
-            initializer_cfg (dict, optional): Configuration for weight initialization
-            device (torch.device, optional): Device to place tensors on
-            dtype (torch.dtype, optional): Data type for tensors
-        """
         super().__init__()
 
         self.d_model = d_model
@@ -597,12 +597,12 @@ class LRNNLMHeadModel(nn.Module):
             initializer_cfg=initializer_cfg,
             fused_add_norm=fused_add_norm,
             residual_in_fp32=residual_in_fp32,
-            **factory_kwargs,
+            **factory_kwargs,  # type: ignore[arg-type]
         )
 
         # language modeling head
         self.lm_head = nn.Linear(
-            d_model, padded_vocab_size, bias=False, **factory_kwargs
+            d_model, padded_vocab_size, bias=False, **factory_kwargs  # type: ignore[arg-type]
         )
 
         # initialize weights
@@ -638,13 +638,12 @@ class LRNNLMHeadModel(nn.Module):
         Allocate inference cache.
 
         Args:
-            batch_size (int): Batch size for inference
-            max_seqlen (int): Maximum sequence length for inference
-            dtype (torch.dtype, optional): Data type for cache tensors
-            **kwargs: Additional keyword arguments passed to backbone cache allocation
+            batch_size (int): Batch size for inference.
+            max_seqlen (int): Maximum sequence length for inference.
+            dtype (torch.dtype, optional): Data type for cache tensors.
 
         Returns:
-            dict: Dictionary mapping layer indices to their allocated caches
+            dict: Dictionary mapping layer indices to their allocated caches.
         """
         return self.backbone.allocate_inference_cache(
             batch_size, max_seqlen, dtype=dtype, **kwargs
@@ -655,19 +654,18 @@ class LRNNLMHeadModel(nn.Module):
         input_ids: Tensor,
         caches: Dict,
         integration_timesteps: Optional[Tensor] = None,
-    ) -> namedtuple:
+    ) -> namedtuple:  # type: ignore[valid-type]
         """
         Single-step inference for autoregressive generation.
 
-        Args
-        ----
-            input_ids (Tensor): Input token IDs of shape (B, 1) - single token
-            caches (Dict): Dictionary mapping layer indices to their cached states
-            integration_timesteps (Tensor, optional): Integration timesteps for LTV models (shape: B, 1 or B)
+        Args:
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, 1)`` — single token.
+            caches (Dict): Dictionary mapping layer indices to their cached states.
+            integration_timesteps (torch.Tensor, optional): Integration timesteps for LTV models
+                (shape: ``(B, 1)`` or ``(B,)``). Defaults to None.
 
-        Returns
-        -------
-            namedtuple: Contains logits tensor of shape (B, 1, vocab_size)
+        Returns:
+            namedtuple: Contains logits tensor of shape ``(B, 1, vocab_size)``.
         """
         # get hidden states
         hidden_states = self.backbone.step(
@@ -689,22 +687,22 @@ class LRNNLMHeadModel(nn.Module):
         integration_timesteps: Optional[Tensor] = None,
         lengths: Optional[Tensor] = None,
         **mixer_kwargs,
-    ) -> namedtuple:
+    ) -> namedtuple:  # type: ignore[valid-type]
         """
         Forward pass of the language model.
 
-        Args
-        ----
-            input_ids (Tensor): Input token IDs of shape (B, L)
-            position_ids (Tensor, optional): Position IDs (unused, for compatibility)
-            inference_params (Dict, optional): Parameters for inference mode
-            num_last_tokens (int): If > 0, only return logits for last n tokens
-            integration_timesteps (Tensor, optional): Timesteps for LTV models (shape: B, L)
-            lengths (Tensor, optional): Sequence lengths for variable-length sequences (shape: B)
+        Args:
+            input_ids (torch.Tensor): Input token IDs of shape ``(B, L)``.
+            position_ids (torch.Tensor, optional): Position IDs (unused, for compatibility). Defaults to None.
+            inference_params (Dict, optional): Parameters for inference mode. Defaults to None.
+            num_last_tokens (int, optional): If > 0, only return logits for last n tokens. Defaults to 0.
+            integration_timesteps (torch.Tensor, optional): Timesteps for LTV models
+                (shape: ``(B, L)``). Defaults to None.
+            lengths (torch.Tensor, optional): Sequence lengths for variable-length sequences
+                (shape: ``(B,)``). Defaults to None.
 
-        Returns
-        -------
-            namedtuple: Contains logits tensor of shape (B, L, vocab_size)
+        Returns:
+            namedtuple: Contains logits tensor of shape ``(B, L, vocab_size)``.
         """
         # get hidden states from backbone
         hidden_states = self.backbone(
@@ -729,9 +727,8 @@ class LRNNLMHeadModel(nn.Module):
         """
         Save the model and configuration to a directory.
 
-        Args
-        ----
-            save_directory (str): Directory path where model and config will be saved
+        Args:
+            save_directory (str): Directory path where model and config will be saved.
         """
         # create directory if it doesn't exist
         os.makedirs(save_directory, exist_ok=True)
@@ -774,19 +771,16 @@ class LRNNLMHeadModel(nn.Module):
         """
         Load a pretrained model from a directory.
 
-        Args
-        ----
-            pretrained_model_path (str): Path to directory containing saved model and config
-            mixer_kwargs (dict, optional): Additional keyword arguments for mixer
-            mlp_cls (class, optional): MLP class to use
-            initializer_cfg (dict, optional): Configuration for weight initialization
-            device (torch.device, optional): Device to place tensors on
-            dtype (torch.dtype, optional): Data type for tensors
-            **kwargs: Additional keyword arguments passed to model constructor
+        Args:
+            pretrained_model_path (str): Path to directory containing saved model and config.
+            mixer_kwargs (dict, optional): Additional keyword arguments for mixer. Defaults to None.
+            mlp_cls (type, optional): MLP class to use. Defaults to None.
+            initializer_cfg (dict, optional): Configuration for weight initialization. Defaults to None.
+            device (torch.device, optional): Device to place tensors on. Defaults to None.
+            dtype (torch.dtype, optional): Data type for tensors. Defaults to None.
 
-        Returns
-        -------
-            LRNNLMHeadModel: Loaded model instance
+        Returns:
+            LRNNLMHeadModel: Loaded model instance.
         """
         # load configuration
         config_path = os.path.join(pretrained_model_path, "config.json")

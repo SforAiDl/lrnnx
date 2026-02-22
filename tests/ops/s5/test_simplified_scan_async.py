@@ -2,16 +2,8 @@ import numpy as np
 import pytest
 import torch
 
-from lrnnx.ops.simplified_scan import (
-    simplified_scan_fn,
-    simplified_scan_ref,
-)
-from lrnnx.utils.init import (
-    init_CV,
-    init_log_steps,
-    init_VinvB,
-    make_DPLR_HiPPO,
-)
+from lrnnx.ops.simplified_scan import simplified_scan_fn, simplified_scan_ref
+from lrnnx.utils.init import init_CV, init_log_steps, init_VinvB, make_DPLR_HiPPO
 
 BATCH_SIZES = [2]
 SEQ_LENGTHS = [8, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192]

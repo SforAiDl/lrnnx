@@ -21,12 +21,12 @@ def fft_conv(equation: str, input: Tensor, *args) -> Tensor:
     FFT based convolution operation.
 
     Args:
-        equation (String): Einsum equation for the convolution
-        input (Tensor): Input tensor, shape (B, L, H) or (B, L, N)
-        *args: Either single kernel (L, H, H) or (K, B_norm / B_bar, C) tensors
+        equation (str): Einsum equation for the convolution.
+        input (torch.Tensor): Input tensor, shape ``(B, L, H)`` or ``(B, L, N)``.
+        *args: Either single kernel ``(L, H, H)`` or ``(K, B_norm / B_bar, C)`` tensors.
 
     Returns:
-        Convolved output tensor, shape (B, L, H) or (B, L, N)
+        torch.Tensor: Convolved output tensor, shape ``(B, L, H)`` or ``(B, L, N)``.
     """
     L = input.shape[1]
 
@@ -54,13 +54,13 @@ def opt_ssm_forward(x: Tensor, K: Tensor, B_: Tensor, C: Tensor) -> Tensor:
     Optimized FFT convolution.
 
     Args:
-        x (Tensor): Input tensor, shape (B, L, H)
-        K (Tensor): Kernel tensor, shape (L, H, H) or (L, N)
-        B_ (Tensor): Normalized input projection matrix, shape (N, H)
-        C (Tensor): Output projection matrix, shape (H, N)
+        x (torch.Tensor): Input tensor, shape ``(B, L, H)``.
+        K (torch.Tensor): Kernel tensor, shape ``(L, H, H)`` or ``(L, N)``.
+        B_ (torch.Tensor): Normalized input projection matrix, shape ``(N, H)``.
+        C (torch.Tensor): Output projection matrix, shape ``(H, N)``.
 
     Returns:
-        Tensor: Output tensor, shape (B, L, H)
+        torch.Tensor: Output tensor, shape ``(B, L, H)``.
     """
     B, _, H_in = x.shape
     H_out, N = C.shape
@@ -84,15 +84,7 @@ def opt_ssm_forward(x: Tensor, K: Tensor, B_: Tensor, C: Tensor) -> Tensor:
 
 
 class FFTConvS4(nn.Module):
-    """Implements an FFT Convolution around a convolution kernel.
-
-    d_model (H): Model dimension (in CNN terminology, this would be "channels").
-    l_max (L): The maximum kernel length. Set l_max=None to always use a global kernel.
-    channels: Can be interpreted as a number of "heads"; the SSM is a map from a 1-dim to C-dim sequence.
-    transposed, dropout, tie_dropout: More general model options, see SequenceModule.
-    kernel_type: Which kernel algorithm to use ('s4' for DPLR, 's4d' for diagonal)
-    param_config: Dictionary containing references to SSM parameters (A, B, C, dt, P, etc.)
-    """
+    """Implements an FFT Convolution around a convolution kernel."""
 
     def __init__(
         self,
@@ -109,6 +101,23 @@ class FFTConvS4(nn.Module):
         kernel=None,
         **kernel_args,
     ):
+        """
+        Initialize FFTConvS4.
+
+        Args:
+            d_model (int): Model dimension (in CNN terminology, "channels").
+            l_max (int, optional): Maximum kernel length. ``None`` for a global kernel. Defaults to None.
+            channels (int, optional): Number of "heads"; SSM maps 1-dim to C-dim. Defaults to 1.
+            swap_channels (bool, optional): Whether to swap channel ordering. Defaults to False.
+            transposed (bool, optional): Backbone axis ordering. Defaults to True.
+            dropout (float, optional): Dropout probability. Defaults to 0.0.
+            tie_dropout (bool, optional): Tie dropout mask across sequence length. Defaults to False.
+            drop_kernel (float, optional): Kernel dropout probability. Defaults to 0.0.
+            kernel_type (str, optional): Kernel algorithm (``'s4'`` for DPLR, ``'s4d'`` for diagonal). Defaults to None.
+            param_config (dict, optional): References to SSM parameters (A, B, C, dt, P, etc.). Defaults to None.
+            kernel (str, optional): Alternative kernel specification. Defaults to None.
+            **kernel_args: Additional arguments forwarded to the kernel class.
+        """
         super().__init__()
         self.d_model = d_model
         self.L = self.l_max = l_max
@@ -152,11 +161,19 @@ class FFTConvS4(nn.Module):
         self, x, state=None, rate=1.0, **kwargs
     ):  # absorbs return_output and transformer src mask
         """
-        x: (B D L) if self.transposed else (B L D)
+        Forward pass through FFTConvS4.
+
+        Args:
+            x (torch.Tensor): Input tensor, shape ``(B, D, L)`` if ``self.transposed``
+                else ``(B, L, D)``.
+            state (torch.Tensor, optional): Recurrent state. Defaults to None.
+            rate (float, optional): Rate for kernel computation. Defaults to 1.0.
+            **kwargs: Additional keyword arguments (absorbs return_output, src mask, etc.).
 
         Returns:
-            y: (B C H L) - convolution output in channel format
-            next_state: state for recurrent mode
+            tuple[torch.Tensor, torch.Tensor | None]: A tuple containing:
+                - y : Convolution output, shape ``(B, C, H, L)``.
+                - next_state : State for recurrent mode, or ``None``.
         """
 
         # Always work with (B D L) dimension in this module
@@ -192,11 +209,19 @@ class FFTConvS4(nn.Module):
         self.kernel._setup_step(**kwargs)
 
     def step(self, x, state):
-        """Step one time step as a recurrent model. Intended to be used during validation.
+        """
+        Step one time step as a recurrent model.
 
-        x: (B H)
-        state: (B H N)
-        Returns: output (B C H), state (B H N)
+        Intended to be used during validation.
+
+        Args:
+            x (torch.Tensor): Input tensor, shape ``(B, H)``.
+            state (torch.Tensor): Recurrent state, shape ``(B, H, N)``.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - y : Output, shape ``(B, C, H)``.
+                - next_state : Updated state, shape ``(B, H, N)``.
         """
 
         y, next_state = self.kernel.step(x, state)  # (B C H)

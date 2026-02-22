@@ -15,6 +15,19 @@ from lrnnx.models.lti.base import LTI_LRNN
 
 
 class LRU(LTI_LRNN):
+    """
+    Linear Recurrent Unit (LRU) layer.
+
+    Paper: https://arxiv.org/abs/2303.06349
+
+    Example:
+        >>> model = LRU(d_model=64, d_state=64)
+        >>> x = torch.randn(2, 128, 64)
+        >>> y = model(x)
+        >>> y.shape
+        torch.Size([2, 128, 64])
+    """
+
     def __init__(
         self,
         d_model: int,
@@ -27,11 +40,12 @@ class LRU(LTI_LRNN):
         Initialize LRU layer.
 
         Args:
-            d_model (int): Model dimension
-            d_state (int): State dimension
-            r_min (float): Minimum radius for Lambda initialization
-            r_max (float): Maximum radius for Lambda initialization
-            max_phase (float): Maximum phase for Lambda initialization
+            d_model (int): Model dimension.
+            d_state (int): State dimension.
+            r_min (float, optional): Minimum radius for Lambda initialization. Defaults to 0.
+            r_max (float, optional): Maximum radius for Lambda initialization. Defaults to 1.
+            max_phase (float, optional): Maximum phase for Lambda initialization.
+                Defaults to ``2 * math.pi``.
         """
         super().__init__(
             discretization="no_discretization"
@@ -49,14 +63,15 @@ class LRU(LTI_LRNN):
         r_max: float = 1,
         max_phase: float = 2 * math.pi,
     ) -> None:
-        """Initialize parameters of the LRU layer.
+        """
+        Initialize parameters of the LRU layer.
 
         Args:
-            d_model (int): Model dimension
-            d_state (int): State dimension
-            r_min (float): Minimum radius for Lambda initialization
-            r_max (float): Maximum radius for Lambda initialization
-            max_phase (float): Maximum phase for Lambda initialization
+            d_model (int): Model dimension.
+            d_state (int): State dimension.
+            r_min (float, optional): Minimum radius for Lambda initialization. Defaults to 0.
+            r_max (float, optional): Maximum radius for Lambda initialization. Defaults to 1.
+            max_phase (float, optional): Maximum phase for Lambda initialization. Defaults to 2 * math.pi.
         """
 
         u1 = torch.rand(d_state)
@@ -100,10 +115,10 @@ class LRU(LTI_LRNN):
         LRU uses no_discretization, so this acts like a prepare matrices method.
 
         Returns:
-            tuple[Tensor, Tensor, Tensor]: A tuple containing:
-                - A (Tensor): Diagonal matrix of Lambda values, shape (N, N)
-                - B (Tensor): Complex input projection matrix, shape (N, H)
-                - C (Tensor): Complex output projection matrix, shape (H, N)
+            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:
+                - A : Diagonal matrix of Lambda values, shape ``(N, N)``.
+                - B : Complex input projection matrix, shape ``(N, H)``.
+                - C : Complex output projection matrix, shape ``(H, N)``.
         """
         Lambda = torch.exp(
             -torch.exp(self.nu_log) + 1j * torch.exp(self.theta_log)
@@ -124,14 +139,14 @@ class LRU(LTI_LRNN):
         Compute Lambda and normalized B matrix for LRU.
 
         Args:
-            L (int): Length of the input sequence
-            Lambda (Tensor): Complex eigenvalues/diagonal elements, shape (N,)
-            B_complex (Tensor): Complex input projection matrix, shape (N, H)
+            L (int): Length of the input sequence.
+            Lambda (torch.Tensor): Complex eigenvalues/diagonal elements, shape ``(N,)``.
+            B_complex (torch.Tensor): Complex input projection matrix, shape ``(N, H)``.
 
         Returns:
-            tuple[Tensor, Tensor]: A tuple containing:
-                - Lambda (Tensor): Complex eigenvalues/diagonal elements, shape (N,)
-                - B_norm (Tensor): Normalized complex input projection matrix, shape (N, H)
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing:
+                - Lambda : Complex eigenvalues/diagonal elements, shape ``(N,)``.
+                - B_norm : Normalized complex input projection matrix, shape ``(N, H)``.
         """
         t_idx = torch.arange(
             L, dtype=torch.float32, device=Lambda.device
@@ -151,12 +166,12 @@ class LRU(LTI_LRNN):
         Forward pass of the LRU layer.
 
         Args:
-            x (Tensor): Input tensor of shape (B, L, H)
-            integration_timesteps (Tensor, optional): <To be implemented>
-            lengths (Tensor, optional): <To be implemented>
+            x (torch.Tensor): Input tensor of shape ``(B, L, H)``.
+            integration_timesteps (torch.Tensor, optional): <To be implemented>. Defaults to None.
+            lengths (torch.Tensor, optional): <To be implemented>. Defaults to None.
 
         Returns:
-            Tensor: Output tensor of shape (B, L, H)
+            torch.Tensor: Output tensor of shape ``(B, L, H)``.
         """
 
         if x.dim() != 3:
@@ -186,14 +201,15 @@ class LRU(LTI_LRNN):
         Single step inference for LRU layer.
 
         Args:
-            x (Tensor): Input tensor of shape (B, H) - single timestep
-            inference_cache (Dict[str, Any]): Cache from allocate_inference_cache()
+            x (torch.Tensor): Input tensor of shape ``(B, H)`` - single timestep.
+            inference_cache (Dict[str, Any]): Cache from ``allocate_inference_cache()``
                 containing "lrnn_state" and pre-computed matrices.
+            **kwargs: Additional keyword arguments.
 
         Returns:
-            tuple[Tensor, Dict[str, Any]]: A tuple containing:
-                - y (Tensor): Output tensor of shape (B, H)
-                - inference_cache (Dict[str, Any]): Updated cache dictionary
+            tuple[torch.Tensor, Dict[str, Any]]: A tuple containing:
+                - y : Output tensor of shape ``(B, H)``.
+                - inference_cache : Updated cache dictionary.
         """
         if x.dim() != 2:
             raise ValueError(
@@ -234,10 +250,10 @@ class LRU(LTI_LRNN):
         Allocate initial state and cached matrices for inference.
 
         Args:
-            batch_size (int): Batch size
-            max_seqlen (int): Maximum sequence length (unused, kept for
-                interface consistency with LTV models).
-            dtype: Data type for allocated tensors (unused).
+            batch_size (int): Batch size.
+            max_seqlen (int, optional): Maximum sequence length (unused, kept for
+                interface consistency with LTV models). Defaults to 1.
+            dtype (torch.dtype, optional): Data type for allocated tensors (unused). Defaults to None.
             **kwargs: Additional model-specific arguments.
 
         Returns:

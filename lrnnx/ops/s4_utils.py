@@ -82,10 +82,16 @@ try:
 
     def log_vandermonde_transpose_keops(u, v, x, L):
         """
-        u: ... H L
-        v: ... H N
-        x: ... H N
-        Returns: ... H N
+        KeOps implementation of transposed log Vandermonde multiplication.
+
+        Args:
+            u (torch.Tensor): Input tensor of shape ``(..., H, L)``.
+            v (torch.Tensor): Input tensor of shape ``(..., H, N)``.
+            x (torch.Tensor): Input tensor of shape ``(..., H, N)``.
+            L (int): Sequence length.
+
+        Returns:
+            torch.Tensor: Output tensor of shape ``(..., H, N)``.
         """
         expr = "ComplexMult(ComplexMult(v, u), ComplexExp(ComplexMult(x, l)))"
         vandermonde_mult = Genred(
@@ -117,10 +123,15 @@ except ImportError:
 # Fallback versions
 def cauchy_naive(v, z, w):
     """
-    v: (..., N)
-    z: (..., L)
-    w: (..., N)
-    returns: (..., L) sum v/(z-w)
+    Naive PyTorch fallback for Cauchy matrix multiplication.
+
+    Args:
+        v (torch.Tensor): Input tensor of shape ``(..., N)``.
+        z (torch.Tensor): Input tensor of shape ``(..., L)``.
+        w (torch.Tensor): Input tensor of shape ``(..., N)``.
+
+    Returns:
+        torch.Tensor: The sum v/(z-w), shape ``(..., L)``.
     """
     v = _conj(v)
     w = _conj(w)
@@ -130,9 +141,16 @@ def cauchy_naive(v, z, w):
 
 def log_vandermonde_naive(v, x, L, conj=True):
     """
-    v: (..., N)
-    x: (..., N)
-    returns: (..., L) sum v x^l
+    Naive PyTorch fallback for log Vandermonde multiplication.
+
+    Args:
+        v (torch.Tensor): Input tensor of shape ``(..., N)``.
+        x (torch.Tensor): Input tensor of shape ``(..., N)``.
+        L (int): Sequence length.
+        conj (bool, optional): Whether to use conjugate symmetry. Defaults to True.
+
+    Returns:
+        torch.Tensor: The sum v * x^l, shape ``(..., L)``.
     """
     vandermonde_matrix = torch.exp(x.unsqueeze(-1) * torch.arange(L).to(x))
     vandermonde_prod = contract(
@@ -142,6 +160,18 @@ def log_vandermonde_naive(v, x, L, conj=True):
 
 
 def log_vandermonde_transpose_naive(u, v, x, L):
+    """
+    Naive PyTorch fallback for transposed log Vandermonde multiplication.
+
+    Args:
+        u (torch.Tensor): Input tensor of shape ``(..., L)``.
+        v (torch.Tensor): Input tensor of shape ``(..., N)``.
+        x (torch.Tensor): Input tensor of shape ``(..., N)``.
+        L (int): Sequence length.
+
+    Returns:
+        torch.Tensor: Output tensor of shape ``(..., N)``.
+    """
     vandermonde_matrix = torch.exp(x.unsqueeze(-1) * torch.arange(L).to(x))
     vandermonde_prod = contract(
         "... l, ... n, ... n l -> ... n", u.to(x), v.to(x), vandermonde_matrix
@@ -150,7 +180,12 @@ def log_vandermonde_transpose_naive(u, v, x, L):
 
 
 def get_cauchy_kernel():
-    """Returns the best available Cauchy multiplication function."""
+    """
+    Returns the best available Cauchy multiplication function.
+
+    Returns:
+        callable: The Cauchy kernel function (CUDA, KeOps, or naive fallback).
+    """
     if has_cuda_extension:
         return cauchy_cuda
     if has_pykeops:
@@ -159,7 +194,12 @@ def get_cauchy_kernel():
 
 
 def get_vandermonde_kernel():
-    """Returns the best available Vandermonde multiplication function."""
+    """
+    Returns the best available Vandermonde multiplication function.
+
+    Returns:
+        callable: The Vandermonde kernel function (CUDA, KeOps, or naive fallback).
+    """
     if has_cuda_extension:
         return log_vandermonde_cuda
     if has_pykeops:
@@ -168,7 +208,12 @@ def get_vandermonde_kernel():
 
 
 def get_vandermonde_transpose_kernel():
-    """Returns the best available transpose Vandermonde multiplication function."""
+    """
+    Returns the best available transpose Vandermonde multiplication function.
+
+    Returns:
+        callable: The transposed Vandermonde kernel function (KeOps or naive fallback).
+    """
     if has_pykeops:
         return log_vandermonde_transpose_keops
     return log_vandermonde_transpose_naive
@@ -185,7 +230,20 @@ def LinearActivation(
     activate=False,
     **kwargs,
 ):
-    """Returns a linear nn.Module with control over axes order, initialization, and activation."""
+    """
+    Returns a linear nn.Module with control over axes order, initialization, and activation.
+
+    Args:
+        d_input (int): Input dimension.
+        d_output (int): Output dimension.
+        bias (bool, optional): Whether to use bias. Defaults to True.
+        transposed (bool, optional): If True, uses Conv1d instead of Linear. Defaults to False.
+        activate (bool, optional): Whether to append a GELU activation. Defaults to False.
+        **kwargs: Additional arguments passed to the linear layer.
+
+    Returns:
+        torch.nn.Module: The configured linear/activation module.
+    """
     linear_cls = partial(nn.Conv1d, kernel_size=1) if transposed else nn.Linear
     linear = linear_cls(d_input, d_output, bias=bias, **kwargs)
 
@@ -196,8 +254,16 @@ def LinearActivation(
 
 
 class DropoutNd(nn.Module):
+    """
+    N-dimensional dropout module.
+
+    Args:
+        p (float, optional): Dropout probability. Defaults to 0.5.
+        tie (bool, optional): Tie dropout mask across sequence lengths (Dropout1d/2d/3d). Defaults to True.
+        transposed (bool, optional): Whether the sequence dimension is transposed. Defaults to True.
+    """
+
     def __init__(self, p: float = 0.5, tie=True, transposed=True):
-        """tie: tie dropout mask across sequence lengths (Dropout1d/2d/3d)"""
         super().__init__()
         if p < 0 or p >= 1:
             raise ValueError(
@@ -209,7 +275,15 @@ class DropoutNd(nn.Module):
         self.binomial = torch.distributions.binomial.Binomial(probs=1 - self.p)
 
     def forward(self, X):
-        """X: (batch, dim, lengths...)."""
+        """
+        Forward pass for DropoutNd.
+
+        Args:
+            X (torch.Tensor): Input tensor of shape ``(batch, dim, lengths...)``.
+
+        Returns:
+            torch.Tensor: Tensor with dropout applied.
+        """
         if self.training:
             if not self.transposed:
                 X = rearrange(X, "b ... d -> b d ...")
@@ -231,8 +305,13 @@ def power(L, A, v=None):
     """
     Compute A^L and the scan sum_i A^i v_i.
 
-    A: (..., N, N)
-    v: (..., N, L)
+    Args:
+        L (int): Power to raise A to.
+        A (torch.Tensor): Input matrix of shape ``(..., N, N)``.
+        v (torch.Tensor, optional): Vector for scan sum, shape ``(..., N, L)``. Defaults to None.
+
+    Returns:
+        torch.Tensor | tuple[torch.Tensor, torch.Tensor]: A^L, or a tuple of (A^L, scan sum).
     """
     I = torch.eye(A.shape[-1]).to(A)
 
@@ -270,7 +349,17 @@ def power(L, A, v=None):
 
 
 def transition(measure, N, **measure_args):
-    """A, B transition matrices for different measures."""
+    """
+    Constructs A, B transition matrices for different measures.
+
+    Args:
+        measure (str): Measure type (e.g., "legt", "legs", "fourier").
+        N (int): State dimension.
+        **measure_args: Additional arguments for the measure.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Transition matrices A and B.
+    """
     if measure == "legt":
         Q = np.arange(N, dtype=np.float64)
         R = (2 * Q + 1) ** 0.5
@@ -305,7 +394,18 @@ def transition(measure, N, **measure_args):
 
 
 def rank_correction(measure, N, rank=1, dtype=torch.float):
-    """Return low-rank matrix L such that A + L is normal."""
+    """
+    Return low-rank matrix P such that A + PP^T is normal.
+
+    Args:
+        measure (str): Measure type.
+        N (int): State dimension.
+        rank (int, optional): Rank of the correction. Defaults to 1.
+        dtype (torch.dtype, optional): Data type. Defaults to torch.float.
+
+    Returns:
+        torch.Tensor: Rank correction matrix P.
+    """
     if measure == "legs":
         assert rank >= 1
         P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)
@@ -344,7 +444,18 @@ def nplr(
     Constructs NPLR form of HiPPO matrices.
 
     Returns w, p, q, V, B such that (w - p q^*, B) is unitarily equivalent to
-    the original HiPPO A, B by the matrix V, i.e. A = V[w - p q^*]V^*, B = V B
+    the original HiPPO A, B by the matrix V, i.e. A = V[w - p q^*]V^*, B = V B.
+
+    Args:
+        measure (str): Measure type.
+        N (int): State dimension.
+        rank (int, optional): Rank of the correction. Defaults to 1.
+        dtype (torch.dtype, optional): Target data type. Defaults to torch.float.
+        diagonalize_precision (bool, optional): Whether to diagonalize in double precision. Defaults to True.
+        B_clip (float, optional): Clipping value for B. Defaults to 2.0.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: The W, P, B, and V matrices.
     """
     assert dtype == torch.float or dtype == torch.double
     cdtype = torch.cfloat if dtype == torch.float else torch.cdouble
@@ -422,7 +533,28 @@ def dplr(
     P_scale=1.0,
     normalize=False,
 ):
-    """Directly construct a DPLR matrix."""
+    """
+    Directly construct a DPLR matrix.
+
+    Args:
+        init (str, optional): Initialization method. Defaults to "hippo".
+        N (int, optional): State size. Defaults to 64.
+        rank (int, optional): Rank for DPLR parameterization. Defaults to 1.
+        H (int, optional): Number of independent SSM copies. Defaults to 1.
+        dtype (torch.dtype, optional): Data type. Defaults to torch.float.
+        real_random (bool, optional): Whether to randomize real part. Defaults to False.
+        real_scale (float, optional): Scaling factor for real part. Defaults to 1.0.
+        imag_random (bool, optional): Whether to randomize imaginary part. Defaults to False.
+        imag_scale (float, optional): Scaling factor for imaginary part. Defaults to 1.0.
+        B_random (bool, optional): Deprecated. Defaults to False.
+        B_init (str, optional): Initialization method for B. Defaults to "constant".
+        B_scale (float, optional): Scaling factor for B. Defaults to 1.0.
+        P_scale (float, optional): Scaling factor for P. Defaults to 1.0.
+        normalize (bool, optional): Whether to normalize B. Defaults to False.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Matrices A, P, B, V.
+    """
     assert dtype == torch.float or dtype == torch.double
     dtype = torch.cfloat if dtype == torch.float else torch.cdouble
 
@@ -518,9 +650,15 @@ def ssm(init, N, R, H, **ssm_args):
     """
     Dispatcher to create single SSM initialization.
 
-    N: state size
-    R: rank (for DPLR parameterization)
-    H: number of independent SSM copies
+    Args:
+        init (str): Initialization method.
+        N (int): State size.
+        R (int): Rank (for DPLR parameterization).
+        H (int): Number of independent SSM copies.
+        **ssm_args: Additional arguments.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Matrices A, P, B, V.
     """
     if init.startswith("diag") or init.startswith("dplr"):
         if init.startswith("diag"):
@@ -547,7 +685,19 @@ combinations = {
 
 
 def combination(inits, N, R, S, **ssm_args):
-    """Create combination of SSM initializations."""
+    """
+    Create combination of SSM initializations.
+
+    Args:
+        inits (str | list[str]): Initialization methods.
+        N (int): State size.
+        R (int): Rank.
+        S (int): Number of SSM copies.
+        **ssm_args: Additional arguments.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Combined matrices A, P, B, V.
+    """
     if isinstance(inits, str):
         inits = combinations[inits] if inits in combinations else [inits]
 
@@ -568,7 +718,16 @@ def combination(inits, N, R, S, **ssm_args):
 
 
 def inv_transform(param, transform="none"):
-    """Initialize a (positive) parameter under a transform."""
+    """
+    Initialize a (positive) parameter under a transform.
+
+    Args:
+        param (torch.Tensor): Parameter tensor.
+        transform (str, optional): Transform type ("none", "exp", "relu", "sigmoid", "softplus"). Defaults to "none".
+
+    Returns:
+        torch.Tensor: Transformed parameter.
+    """
     param = torch.clamp(param, min=1e-4)
     if transform == "none":
         return param
@@ -585,7 +744,16 @@ def inv_transform(param, transform="none"):
 
 
 def param_transform(param, transform="none"):
-    """Get a (positive) parameter under a transform."""
+    """
+    Get a (positive) parameter under a transform.
+
+    Args:
+        param (torch.Tensor): Parameter tensor.
+        transform (str, optional): Transform type. Defaults to "none".
+
+    Returns:
+        torch.Tensor: Transformed parameter.
+    """
     if transform == "none":
         p = param
     elif transform == "exp":
@@ -614,7 +782,22 @@ def init_dt(
     deterministic=False,
     dtype=torch.float,
 ):
-    """Initialize dt parameter."""
+    """
+    Initialize dt parameter.
+
+    Args:
+        H (int): Model dimension (number of independent SSMs).
+        N (int): State size.
+        dt_min (float, optional): Minimum dt value. Defaults to 0.001.
+        dt_max (float, optional): Maximum dt value. Defaults to 0.1.
+        dt_tie (bool, optional): Whether to tie dt across dimensions. Defaults to True.
+        dt_transform (str, optional): Transform type for dt. Defaults to "exp".
+        deterministic (bool, optional): Whether to use deterministic initialization. Defaults to False.
+        dtype (torch.dtype, optional): Data type. Defaults to torch.float.
+
+    Returns:
+        torch.Tensor: Initialized (inverse transformed) dt parameter.
+    """
     if deterministic:
         assert dt_tie, "Deterministic dt initialization is tied"
         assert (
@@ -644,7 +827,23 @@ def init_ssm_dplr(
     cdtype=torch.cfloat,
     **init_args,
 ):
-    """Initialize DPLR (A, P, B, C) parameters and return broadcast repeat factor."""
+    """
+    Initialize DPLR (A, P, B, C) parameters and return broadcast repeat factor.
+
+    Args:
+        N (int): State size.
+        H (int): Model dimension.
+        n_ssm (int): Number of independent SSM copies.
+        channels (int): Number of channels.
+        rank (int): Rank.
+        init (str): Initialization method.
+        deterministic (bool, optional): Whether to use deterministic initialization. Defaults to False.
+        cdtype (torch.dtype, optional): Complex data type. Defaults to torch.cfloat.
+        **init_args: Additional initialization arguments.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Tensors A, P, B, C.
+    """
     A, P, B, V = combination(init, N, rank, n_ssm, **init_args)
 
     # Broadcast C to have H channels
@@ -703,7 +902,27 @@ def register_ssm_params(
     Register SSM parameters on a module.
 
     Args:
-        diag: If True, skip P registration and rank checks (for diagonal S4D)
+        module (torch.nn.Module): The module to register parameters on.
+        A (torch.Tensor): Tensor A.
+        B (torch.Tensor): Tensor B.
+        C (torch.Tensor): Tensor C.
+        inv_dt (torch.Tensor): Inverse dt tensor.
+        P (torch.Tensor): Tensor P.
+        H (int): Model dimension.
+        n_ssm (int): Number of independent SSMs.
+        N (int): State size.
+        channels (int): Number of channels.
+        rank (int): Rank.
+        dt_fast (bool): Whether dt is fast.
+        real_transform (str): Transform for the real part.
+        imag_transform (str): Transform for the imaginary part.
+        is_real (bool): Whether parameters are real.
+        verbose (bool): Whether to print construction details.
+        l_max (int): Maximum sequence length.
+        diag (bool, optional): If True, skip P registration and rank checks (for diagonal S4D). Defaults to False.
+
+    Returns:
+        int: The repeat broadcast factor.
     """
     if dt_fast:
         inv_dt = torch.asinh(inv_dt)
@@ -782,7 +1001,22 @@ def process_ssm_params(
     """
     Process SSM parameters from stored form to usable form.
 
-    Returns: dt, A, B, C, dtA
+    Args:
+        A_real (torch.Tensor): Real part of A.
+        A_imag (torch.Tensor): Imaginary part of A.
+        B (torch.Tensor): Tensor B.
+        C (torch.Tensor): Tensor C.
+        inv_dt (torch.Tensor): Inverse dt tensor.
+        real_transform (str, optional): Transform for A_real. Defaults to "exp".
+        imag_transform (str, optional): Transform for A_imag. Defaults to "none".
+        dt_transform (str, optional): Transform for dt. Defaults to "exp".
+        dt_fast (bool, optional): Whether dt is fast. Defaults to False.
+        is_real (bool, optional): Whether parameters are real. Defaults to False.
+        repeat_factor (int, optional): Broadcast repeat factor. Defaults to 1.
+        rate (float, optional): Sampling rate. Defaults to 1.0.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Processed dt, A, B, C, dtA.
     """
     # Process A
     if is_real:
@@ -827,7 +1061,23 @@ def process_dplr_params(
     """
     Process DPLR SSM parameters including P and Q matrices.
 
-    Returns: dt, A, B, C, P, Q
+    Args:
+        A_real (torch.Tensor): Real part of A.
+        A_imag (torch.Tensor): Imaginary part of A.
+        B (torch.Tensor): Tensor B.
+        C (torch.Tensor): Tensor C.
+        P (torch.Tensor): Tensor P.
+        inv_dt (torch.Tensor): Inverse dt tensor.
+        real_transform (str, optional): Transform for A_real. Defaults to "exp".
+        imag_transform (str, optional): Transform for A_imag. Defaults to "none".
+        dt_transform (str, optional): Transform for dt. Defaults to "exp".
+        dt_fast (bool, optional): Whether dt is fast. Defaults to False.
+        is_real (bool, optional): Whether parameters are real. Defaults to False.
+        repeat_factor (int, optional): Broadcast repeat factor. Defaults to 1.
+        rate (float, optional): Sampling rate. Defaults to 1.0.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: Processed dt, A, B, C, P, Q.
     """
     dt, A, B, C, dtA = process_ssm_params(
         A_real,
@@ -853,7 +1103,19 @@ def process_dplr_params(
 
 
 def setup_default_state(C, N, H, batch_shape, step_mode="dense"):
-    """Create default SSM state."""
+    """
+    Create default SSM state.
+
+    Args:
+        C (torch.Tensor): Tensor C to derive dtype and device from.
+        N (int): State size.
+        H (int): Model dimension.
+        batch_shape (tuple): Batch shape dimensions.
+        step_mode (str, optional): Step mode ("dense", "linear", etc.). Defaults to "dense".
+
+    Returns:
+        torch.Tensor: Zero-initialized state tensor.
+    """
     if step_mode != "linear":
         N *= 2
     state = torch.zeros(*batch_shape, H, N, dtype=C.dtype, device=C.device)
