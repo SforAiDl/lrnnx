@@ -63,7 +63,7 @@ class S4KernelBase(nn.Module):
     ):
         super().__init__()
 
-        # ── parameter references (owned by the parent S4/S4D model) ──
+        # parameter references (owned by the parent S4/S4D model) 
         self.A_real = param_config["A_real"]
         self.A_imag = param_config.get("A_imag")  # None when is_real=True
         self.B = param_config["B"]
@@ -71,14 +71,14 @@ class S4KernelBase(nn.Module):
         self.P = param_config.get("P")  # None for S4D (diagonal)
         self.inv_dt = param_config["inv_dt"]
 
-        # ── derived dimensions (already computed by the parent) ──
+        # derived dimensions (already computed by the parent) 
         self.N = param_config["N"]  # halved for conjugate symmetry
         self.H = param_config["H"]
         self.channels = param_config["channels"]
         self.rank = param_config["rank"]
         self.repeat = param_config["repeat"]  # broadcast factor H // n_ssm
 
-        # ── flags / transforms ──
+        # flags / transforms 
         self.dt_fast = param_config["dt_fast"]
         self.real_transform = param_config["real_transform"]
         self.imag_transform = param_config["imag_transform"]
@@ -87,7 +87,7 @@ class S4KernelBase(nn.Module):
         self.deterministic = param_config["deterministic"]
         self.verbose = param_config["verbose"]
 
-        # ── model geometry ──
+        # model geometry 
         self.d_model = d_model
         self.L = self.l_max = l_max
 

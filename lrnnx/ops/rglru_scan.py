@@ -536,7 +536,7 @@ def rglru_inner_fn(
     gate: torch.Tensor,
     c: float = 8.0,
 ) -> torch.Tensor:
-    """
+    r"""
     RG-LRU inner function (CUDA).
 
     Computes conv1d, gate projections, gating, scan, and output projection::
@@ -596,7 +596,7 @@ def rglru_inner_ref(
     gate: torch.Tensor,
     c: float = 8.0,
 ) -> torch.Tensor:
-    """
+    r"""
     Reference RG-LRU inner function (pure PyTorch).
 
     Computes::
