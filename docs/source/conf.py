@@ -124,6 +124,11 @@ intersphinx_mapping = {
 # Remove module names for cleaner display
 add_module_names = False
 
+# LaTeX/PDF output options
+latex_documents = [
+    ("index", "lrnnx.tex", "lrnnx Documentation", "SAiDL", "manual"),
+]
+
 
 def autodoc_process_signature(
     app, what, name, obj, options, signature, return_annotation
