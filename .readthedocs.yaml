@@ -41,7 +41,10 @@ build:
     - make -C $READTHEDOCS_OUTPUT/latex all-pdf
 
     # Build EPUB
-    - sphinx-build -b epub docs/source $READTHEDOCS_OUTPUT/epub
+    - rm -rf $READTHEDOCS_OUTPUT/epub
+    - mkdir -p $READTHEDOCS_OUTPUT/epub
+    - sphinx-build -b epub docs/source /tmp/lrnnx-epub
+    - cp /tmp/lrnnx-epub/*.epub $READTHEDOCS_OUTPUT/epub/
 
 sphinx:
   configuration: docs/source/conf.py
