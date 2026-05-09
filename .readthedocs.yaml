@@ -37,8 +37,11 @@ build:
     - sphinx-build -b html docs/source $READTHEDOCS_OUTPUT/html
 
     # Build PDF (LaTeX -> PDF)
-    - sphinx-build -b latex docs/source $READTHEDOCS_OUTPUT/latex
-    - make -C $READTHEDOCS_OUTPUT/latex all-pdf
+    - rm -rf $READTHEDOCS_OUTPUT/pdf
+    - mkdir -p $READTHEDOCS_OUTPUT/pdf
+    - sphinx-build -b latex docs/source /tmp/lrnnx-latex
+    - make -C /tmp/lrnnx-latex all-pdf
+    - cp /tmp/lrnnx-latex/*.pdf $READTHEDOCS_OUTPUT/pdf/
 
     # Build EPUB
     - rm -rf $READTHEDOCS_OUTPUT/epub
