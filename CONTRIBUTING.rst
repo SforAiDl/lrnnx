@@ -1,6 +1,6 @@
 .. highlight:: shell
 
-This has been largely taken from https://github.com/SforAiDl/vformer?tab=contributing-ov-file
+This has been largely taken from https://github.com/SforAiDl/vformer?tab=contributing-ov-file.
 
 ============
 Contributing

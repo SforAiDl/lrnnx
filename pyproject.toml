@@ -29,7 +29,7 @@ dev = [
     "isort",
     "mypy"
 ]
-conv1d = [
+causal-conv1d = [
   "causal-conv1d"
 ]
 

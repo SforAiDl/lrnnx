@@ -26,7 +26,8 @@ authors:
   - family-names: Chheda
     given-names: Pratham
 preferred-citation:
-  type: article
+  type: conference-paper
+  title: "lrnnx: A library for Linear RNNs"
   authors:
   - family-names: Bania
     given-names: Karan
@@ -50,8 +51,9 @@ preferred-citation:
   - family-names: Chheda
     given-names: Pratham
   month: 2
-  title: "lrnnx: A library for Linear RNNs"
-  year: 2026
-  url: "https://arxiv.org/abs/2602.08810"
-  journal: "arXiv preprint arXiv:2602.08810"
-  
+  conference-name: "Proceedings of the 19th Conference of the European Chapter of the Association for Computational Linguistics (Volume 4: Student Research Workshop)"
+  publisher: "Association for Computational Linguistics"
+  start: 811
+  end: 817
+  doi: "10.18653/v1/2026.eacl-srw.60"
+  url: "https://aclanthology.org/2026.eacl-srw.60/"

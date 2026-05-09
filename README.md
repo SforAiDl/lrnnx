@@ -7,13 +7,13 @@ with the License. You may obtain a copy of the License in the LICENSE file.
 
 # lrnnx: A library for Linear RNNs
 <p>
-	<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
-	<a href="https://pypi.org/project/lrnnx/"><img alt="PyPI" src="https://img.shields.io/pypi/v/lrnnx?color=yellow"></a>
-	<a href="https://arxiv.org/abs/2602.08810"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2602.08810-b31b1b.svg"></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+    <a href="https://pypi.org/project/lrnnx/"><img alt="PyPI" src="https://img.shields.io/pypi/v/lrnnx?color=yellow&logo=pypi&logoColor=white"></a>
+    <a href="https://arxiv.org/abs/2602.08810"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2602.08810-b31b1b.svg?logo=arxiv&logoColor=white"></a>
 </p>
 
 A unified PyTorch library providing easy access to state-of-the-art Linear RNN architectures for sequence modeling.
-The technical report of this system was accepted to [EACL Student Research Workshop 2026](https://2026.eacl.org/calls/srw/).
+The technical report of this system was accepted to [EACL Student Research Workshop 2026](https://aclanthology.org/2026.eacl-srw.60/).
 We recommend reading the report before using / contributing to the library.
 
 ## Installation
@@ -23,7 +23,7 @@ We recommend reading the report before using / contributing to the library.
 # standard installation
 pip install lrnnx
 # with optional causal-conv1d
-pip install "lrnnx[conv1d]"
+pip install "lrnnx[causal-conv1d]"
 # for development
 pip install "lrnnx[dev]"
 ```
@@ -43,7 +43,7 @@ cd lrnnx
 # standard installation
 uv sync
 # with optional causal-conv1d
-uv sync --extra conv1d
+uv sync --extra causal-conv1d
 # for development
 uv sync --extra dev
 ```
@@ -55,7 +55,7 @@ cd lrnnx
 # standard installation
 pip install -e . --no-build-isolation
 # with optional causal-conv1d
-pip install -e ".[conv1d]" --no-build-isolation
+pip install -e ".[causal-conv1d]" --no-build-isolation
 # for development
 pip install -e ".[dev]" --no-build-isolation
 ```
@@ -102,8 +102,8 @@ output = model_ltv(x)
 ```
 
 ### Inference
-Linear RNNs in torch require special handling during inference, following [mamba](https://github.com/state-spaces/mamba), we also implement CUDA graphs based inference which reduces CPU overheads, this leads to > 10x speedup compared to using a simple for loop over the sequence length.
-The main file is [generation.py](https://github.com/SforAiDl/lrnnx/blob/main/lrnnx/generation.py) which provides a simple API for autoregressive generation with any of the models in our library.
+Linear RNNs in torch require special handling during inference, following [Mamba](https://github.com/state-spaces/mamba), we also implement CUDA graphs based inference which reduces CPU overheads, this leads to > 10x speedup compared to using a simple for loop over the sequence length.
+The main file is [generation.py](https://github.com/SforAiDl/lrnnx/blob/main/lrnnx/utils/generation.py) which provides a simple API for autoregressive generation with any of the models in our library.
 You can see a simple way to use it in our [benchmarking script](https://github.com/SforAiDl/lrnnx/blob/main/benchmarks/benchmark_inference.py).
 
 ### Reproducing the Benchmarks from the paper
@@ -128,7 +128,7 @@ logits = model(input_ids)
 
 ### Tutorial Overview
 
-Based on the architectures, there are tutorials on how to use them for 2 very popular use cases:
+Based on the architectures, there are tutorials on how to use them for two very popular use cases:
 1. [U-Net Seq2Seq for audio denoising Tutorial](https://github.com/SforAiDl/lrnnx/blob/main/tutorials/notebooks/01_UNet.ipynb)
 2. [Hierarchical Classification Tutorial](https://github.com/SforAiDl/lrnnx/blob/main/tutorials/notebooks/02_hierarchical_classifier.ipynb)
 
@@ -141,20 +141,38 @@ Please check out our [Contributing Guide](https://github.com/SforAiDl/lrnnx/blob
 If you use lrnnx in your research, please cite:
 
 ```bibtex
-@misc{bania2026textttlrnnxlibrarylinearrnns,
-	title={$\texttt{lrnnx}$: A library for Linear RNNs}, 
-	author={Karan Bania and Soham Kalburgi and Manit Tanwar and Dhruthi and Aditya Nagarsekar and Harshvardhan Mestha and Naman Chibber and Raj Deshmukh and Anish Sathyanarayanan and Aarush Rathore and Pratham Chheda},
-	year={2026},
-	eprint={2602.08810},
-	archivePrefix={arXiv},
-	primaryClass={cs.LG},
-	url={https://arxiv.org/abs/2602.08810}, 
+@inproceedings{bania-etal-2026-lrnnx,
+    title = "lrnnx: A library for Linear {RNN}s",
+    author = "Bania, Karan  and
+      Kalburgi, Soham  and
+      Tanwar, Manit  and
+      Dhruthi  and
+      Nagarsekar, Aditya  and
+      Mestha, Harshvardhan  and
+      Chibber, Naman  and
+      Deshmukh, Raj  and
+      Sathyanarayanan, Anish  and
+      Rathore, Aarush  and
+      Chheda, Pratham",
+    editor = "Baez Santamaria, Selene  and
+      Somayajula, Sai Ashish  and
+      Yamaguchi, Atsuki",
+    booktitle = "Proceedings of the 19th Conference of the {E}uropean Chapter of the {A}ssociation for {C}omputational {L}inguistics (Volume 4: Student Research Workshop)",
+    month = mar,
+    year = "2026",
+    address = "Rabat, Morocco",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2026.eacl-srw.60/",
+    doi = "10.18653/v1/2026.eacl-srw.60",
+    pages = "811--817",
+    ISBN = "979-8-89176-383-8",
+    abstract = "Linear recurrent neural networks (LRNNs) provide a structured approach to sequence modeling that bridges classical linear dynamical systems and modern deep learning, offering both expressive power and theoretical guarantees on stability and trainability. In recent years, multiple LRNN-based architectures have been proposed, each introducing distinct parameterizations, discretization schemes, and implementation constraints. However, existing implementations are fragmented across different software frameworks, often rely on framework-specific optimizations, and in some cases require custom CUDA kernels or lack publicly available code altogether. As a result, using, comparing, or extending LRNNs requires substantial implementation effort. To address this, we introduce $\texttt{lrnnx}$, a unified software library that implements several modern LRNN architectures under a common interface. The library exposes multiple levels of control, allowing users to work directly with core components or higher-level model abstractions. $\texttt{lrnnx}$ aims to improve accessibility, reproducibility, and extensibility of LRNN research and applications. We make our code available under a permissive MIT license."
 }
 ```
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/SforAiDl/lrnnx/blob/main/LICENSE) file for details.
+MIT
 
 ## Acknowledgments
 
