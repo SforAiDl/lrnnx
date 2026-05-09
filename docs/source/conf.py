@@ -64,7 +64,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # -- HTML output options --
 html_theme = "furo"  # Modern theme with icon support
 html_static_path = ["_static"]
-html_js_files = ["default-light.js"]
 
 html_theme_options = {
     # Force light mode as default (user can still toggle to dark)
