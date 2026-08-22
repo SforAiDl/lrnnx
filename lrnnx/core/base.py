@@ -15,7 +15,15 @@ class LRNN(Module):
     def __init__(
         self,
         discretization: Optional[
-            Literal["zoh", "bilinear", "dirac", "async", "no_discretization"]
+            Literal[
+                "zoh",
+                "bilinear",
+                "dirac",
+                "async",
+                "no_discretization",
+                "im",
+                "imex",
+            ]
         ],
     ):
         """
@@ -28,6 +36,8 @@ class LRNN(Module):
                 - "dirac" for Dirac method
                 - "async" for asynchronous discretization
                 - "no_discretization" for no discretization
+                - "im" for implicit oscillatory discretization (LinOSS)
+                - "imex" for implicit-explicit oscillatory discretization (LinOSS)
                 - None for models that handle discretization internally
 
         Each model must have a usage example in the documentation, like so:

@@ -14,6 +14,7 @@ Submodules
 
    lrnnx.models.lti.base
    lrnnx.models.lti.centaurus
+   lrnnx.models.lti.linoss
    lrnnx.models.lti.lru
    lrnnx.models.lti.s4
    lrnnx.models.lti.s4d

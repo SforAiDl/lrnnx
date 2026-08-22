@@ -148,6 +148,103 @@ def no_discretization(
     return A, 1.0
 
 
+def im(
+    A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
+) -> tuple[Tensor, Tensor]:
+    """
+    Implicit (IM) oscillatory discretization used by LinOSS.
+
+    The continuous oscillator is written in 2x2 block form. The implicit
+    Euler step is reduced via a Schur complement to a 2x2 transition
+    ``\\bar{A}`` and a 2-vector forcing multiplier ``\\bar{\\gamma}``.
+
+    .. math::
+        S &= (1 + \\Delta^2 A)^{-1} \\\\
+        \\bar{A} &= \\begin{bmatrix}
+            1 - \\Delta^2 A S & -\\Delta A S \\\\
+            \\Delta S & S
+        \\end{bmatrix} \\\\
+        \\bar{\\gamma} &= (\\bar{A}_{11}\\Delta,\\; \\bar{A}_{21}\\Delta)
+
+    Unlike diagonal schemes such as ZOH, ``\\bar{A}`` has shape ``(..., 4)``
+    (row-major 2x2) and ``\\bar{\\gamma}`` has shape ``(..., 2)``.
+
+    Reference: https://arxiv.org/abs/2410.03943
+
+    Args:
+        A (torch.Tensor): Diagonal oscillator coefficients, typically shape ``(P,)``.
+        delta (torch.Tensor): Per-state discretization step ``\\Delta``, typically shape ``(P,)``.
+        integration_timesteps (torch.Tensor, optional): Unused. Defaults to None.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: ``A_bar`` of shape ``(..., 4)`` and
+            ``gamma_bar`` of shape ``(..., 2)``.
+    """
+    step = delta
+    A_diag = A
+
+    schur_comp = 1.0 / (1.0 + step**2 * A_diag)
+    m11 = 1.0 - step**2 * A_diag * schur_comp
+    m12 = -1.0 * step * A_diag * schur_comp
+    m21 = step * schur_comp
+    m22 = schur_comp
+
+    A_bar = torch.stack([m11, m12, m21, m22], dim=-1)
+
+    b1 = m11 * step
+    b2 = m21 * step
+    gamma_bar = torch.stack([b1, b2], dim=-1)
+
+    return A_bar, gamma_bar
+
+
+def imex(
+    A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
+) -> tuple[Tensor, Tensor]:
+    """
+    Implicit-explicit (IMEX) symplectic Euler discretization used by LinOSS.
+
+    .. math::
+        \\bar{A} &= \\begin{bmatrix}
+            1 & -\\Delta A \\\\
+            \\Delta & 1 - \\Delta^2 A
+        \\end{bmatrix} \\\\
+        \\bar{\\gamma} &= (\\Delta,\\; \\Delta^2)
+
+    Unlike diagonal schemes such as ZOH, ``\\bar{A}`` has shape ``(..., 4)``
+    (row-major 2x2) and ``\\bar{\\gamma}`` has shape ``(..., 2)``.
+
+    Reference: https://arxiv.org/abs/2410.03943
+
+    Args:
+        A (torch.Tensor): Diagonal oscillator coefficients, typically shape ``(P,)``.
+        delta (torch.Tensor): Per-state discretization step ``\\Delta``, typically shape ``(P,)``.
+        integration_timesteps (torch.Tensor, optional): Unused. Defaults to None.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor]: ``A_bar`` of shape ``(..., 4)`` and
+            ``gamma_bar`` of shape ``(..., 2)``.
+    """
+    step = delta
+    A_diag = A
+
+    # ones broadcasts step and A_diag to a common shape so that the four
+    # entries of the 2x2 block can be stacked.
+    ones = torch.ones_like(step * A_diag)
+    m11 = ones
+    m12 = -1.0 * step * A_diag
+    m21 = step * ones
+    m22 = ones - step**2 * A_diag
+
+    A_bar = torch.stack([m11, m12, m21, m22], dim=-1)
+
+    b1 = step * ones
+    b2 = step**2 * ones
+    gamma_bar = torch.stack([b1, b2], dim=-1)
+
+    return A_bar, gamma_bar
+
+
 DISCRETIZE_FNS: dict[
     str,
     Callable[
@@ -159,4 +256,6 @@ DISCRETIZE_FNS: dict[
     "dirac": dirac,
     "async": async_,
     "no_discretization": no_discretization,
+    "im": im,
+    "imex": imex,
 }

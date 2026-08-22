@@ -30,14 +30,19 @@ class LTI_LRNN(LRNN):
     def __init__(
         self,
         discretization: Literal[
-            "zoh", "bilinear", "dirac", "no_discretization"
+            "zoh",
+            "bilinear",
+            "dirac",
+            "no_discretization",
+            "im",
+            "imex",
         ],
     ):
         """
         Initialize the LTI LRNN base class.
 
         Args:
-            discretization (Literal["zoh", "bilinear", "dirac", "no_discretization"]):
+            discretization (Literal["zoh", "bilinear", "dirac", "no_discretization", "im", "imex"]):
                 Discretization method to use.
         """
         # for optimal contractions

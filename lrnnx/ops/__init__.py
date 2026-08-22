@@ -1,5 +1,6 @@
 """Custom CUDA/Triton scan operations for LRNN models."""
 
+from lrnnx.ops.linoss_scan import linoss_scan_fn, linoss_scan_ref
 from lrnnx.ops.rglru_scan import (
     rglru_inner_fn,
     rglru_inner_ref,
@@ -24,4 +25,6 @@ __all__ = [
     "rglru_scan_ref",
     "rglru_inner_fn",
     "rglru_inner_ref",
+    "linoss_scan_fn",
+    "linoss_scan_ref",
 ]
