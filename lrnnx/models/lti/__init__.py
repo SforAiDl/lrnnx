@@ -8,6 +8,7 @@ from lrnnx.models.lti.centaurus import (
     CentaurusNeck,
     CentaurusPWNeck,
 )
+from lrnnx.models.lti.linoss import LinOSS
 from lrnnx.models.lti.lru import LRU
 from lrnnx.models.lti.s4 import S4
 from lrnnx.models.lti.s4d import S4D
@@ -20,6 +21,7 @@ __all__ = [
     "CentaurusFull",
     "CentaurusNeck",
     "CentaurusPWNeck",
+    "LinOSS",
     "LRU",
     "S4",
     "S4D",

@@ -20,6 +20,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   lrnnx.ops.linoss_scan
    lrnnx.ops.rglru_scan
    lrnnx.ops.s4_kernel_interface
    lrnnx.ops.s4_utils

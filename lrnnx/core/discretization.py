@@ -148,7 +148,6 @@ def no_discretization(
     return A, 1.0
 
 
-
 def im(
     A: Tensor, delta: Tensor, integration_timesteps: Optional[Tensor] = None
 ) -> tuple[Tensor, Tensor]:
@@ -183,10 +182,6 @@ def im(
     """
     step = delta
     A_diag = A
-    if step.dim() > A_diag.dim():
-        A_diag = A_diag.expand_as(step)
-    elif A_diag.dim() > step.dim():
-        step = step.expand_as(A_diag)
 
     schur_comp = 1.0 / (1.0 + step**2 * A_diag)
     m11 = 1.0 - step**2 * A_diag * schur_comp
@@ -232,24 +227,23 @@ def imex(
     """
     step = delta
     A_diag = A
-    # is this needed?
-    if step.dim() > A_diag.dim():
-        A_diag = A_diag.expand_as(step)
-    elif A_diag.dim() > step.dim():
-        step = step.expand_as(A_diag)
 
-    m11 = torch.ones_like(step * A_diag)
+    # ones broadcasts step and A_diag to a common shape so that the four
+    # entries of the 2x2 block can be stacked.
+    ones = torch.ones_like(step * A_diag)
+    m11 = ones
     m12 = -1.0 * step * A_diag
-    m21 = step * torch.ones_like(A_diag)
-    m22 = 1.0 - step**2 * A_diag
+    m21 = step * ones
+    m22 = ones - step**2 * A_diag
 
     A_bar = torch.stack([m11, m12, m21, m22], dim=-1)
 
-    b1 = step * torch.ones_like(A_diag)
-    b2 = step**2 * torch.ones_like(A_diag)
+    b1 = step * ones
+    b2 = step**2 * ones
     gamma_bar = torch.stack([b1, b2], dim=-1)
 
     return A_bar, gamma_bar
+
 
 DISCRETIZE_FNS: dict[
     str,
